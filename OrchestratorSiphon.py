@@ -178,7 +178,7 @@ def refreshStake(idx):
 def doTransferBond(idx):
     global orchestrators
     try:
-        transfer_amount = web3.Web3.to_wei(orchestrators[idx].pendingLPT - 1, 'ether')
+        transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].pendingLPT) - 1, 'ether')
         log("Should transfer {0} LPTU".format(transfer_amount))
         # Build transaction info
         tx = bonding_contract.functions.transferBond(orchestrators[idx].parsedTargetAddr, transfer_amount,
@@ -248,9 +248,10 @@ def refreshFees(idx):
 def doWithdrawFees(idx):
     global orchestrators
     try:
-        log("Should withdraw {0} WEI".format(orchestrators[idx].pendingETH))
+        transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].pendingETH), 'ether')
+        log("Should withdraw {0} WEI".format(transfer_amount))
         # Build transaction info
-        tx = bonding_contract.functions.withdrawFees(orchestrators[idx].parsedSrcAddr, orchestrators[idx].pendingETH).build_transaction(
+        tx = bonding_contract.functions.withdrawFees(orchestrators[idx].parsedSrcAddr, transfer_amount).build_transaction(
             {
                 "from": orchestrators[idx].parsedSrcAddr,
                 "gasPrice": 1000000000,
@@ -286,18 +287,20 @@ def checkEthBalance(idx):
 def doSendFees(idx):
     global orchestrators
     try:
-        transfer_amount = web3.Web3.to_wei(orchestrators[idx].pendingETH - ETH_MINVAL, 'ether')
+        transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].ethBalance) - ETH_MINVAL, 'ether')
         log("Should transfer {0} wei".format(transfer_amount))
         # Build transaction info
-        tx = w3.eth.send_transaction(
-            {
-                "from": orchestrators[idx].parsedSrcAddr,
-                "to": orchestrators[idx].parsedTargetAddr,
-                "gasPrice": 1000000000,
-                "nonce": w3.eth.get_transaction_count(orchestrators[idx].parsedSrcAddr),
-                "value": transfer_amount
-            }
-        )
+        tx = {
+            'from': orchestrators[idx].parsedSrcAddr,
+            'to': orchestrators[idx].parsedTargetAddr,
+            'value': transfer_amount,
+            "nonce": w3.eth.get_transaction_count(orchestrators[idx].parsedSrcAddr),
+            'gas': 200000,
+            'maxFeePerGas': 2000000000,
+            'maxPriorityFeePerGas': 1000000000,
+            'chainId': 42161
+        }
+
         # Sign and initiate transaction
         signedTx = w3.eth.account.sign_transaction(tx, orchestrators[idx].srcKey)
         transactionHash = w3.eth.send_raw_transaction(signedTx.raw_transaction)
@@ -383,9 +386,9 @@ while True:
 
         # Withdraw pending ETH if threshold is reached 
         if orchestrators[i].pendingETH < ETH_THRESHOLD:
-            log("Waiting for pending fees to reach threshold {0:.0f}.".format(ETH_THRESHOLD))
+            log("Waiting for pending fees to reach threshold {0:.4f}.".format(ETH_THRESHOLD))
         else:
-            log("Delegator {0} has {1:.4f} in ETH fees which exceeds the minimum threshold of {2:.2f}, continuing...".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, ETH_THRESHOLD))
+            log("Delegator {0} has {1:.4f} in ETH fees which exceeds the minimum threshold of {2:.4f}, continuing...".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, ETH_THRESHOLD))
             doWithdrawFees(i)
             checkEthBalance(i)
 
@@ -393,7 +396,7 @@ while True:
         if orchestrators[i].ethBalance < ETH_MAXVAL:
             log("Waiting for ETH in wallet of {0} to reach threshold {1}.".format(orchestrators[i].srcAddr, ETH_MAXVAL))
         else:
-            log("Delegator {0} has {1:.4f} in ETH fees which exceeds the minimum threshold of {2:.2f}, continuing...".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD))
+            log("Delegator {0} has {1:.4f} ETH in their wallet which exceeds the minimum threshold of {2:.4f}, continuing...".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD))
             doSendFees(i)
             checkEthBalance(i)
 
@@ -415,6 +418,7 @@ while True:
         if orchestrators[i].lastRewardRound < currentRoundNum:
             log("Orchestrator {0} last called reward in round {1}, but the latest round is {2}".format(orchestrators[i].srcAddr, orchestrators[i].lastRewardRound, currentRoundNum))
             doCallReward(i)
+            refreshRewardRound(i)
         else:
             orchestrators[i].hasCalledReward = True
             log("Orchestrator {0} has already called reward in round {1}".format(orchestrators[i].srcAddr, currentRoundNum))
@@ -423,8 +427,9 @@ while True:
     delay = WAIT_TIME_IDLE
     while delay > 0:
         log("Sleeping for " + str(delay) + " more seconds...")
-        delay = delay - 30
         if (delay > 30):
+            delay = delay - 30
             time.sleep(30)
         else:
             time.sleep(delay)
+            delay = 0
