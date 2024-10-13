@@ -144,7 +144,7 @@ def refreshLock():
 def refreshRewardRound(idx):
     global orchestrators
     try:
-        # get delegator info (returns [lastRewardRound, rewardCut, feeShare, 
+        # getTranscoder      (returns [lastRewardRound, rewardCut, feeShare, 
         #                              lastActiveStakeUpdateRound, activationRound, deactivationRound,
         #                              activeCumulativeRewards, cumulativeRewards, cumulativeFees,
         #                              lastFeeRound])
@@ -242,7 +242,7 @@ def refreshFees(idx):
         log("Unable to refresh fees: '{0}'".format(e))
 
 """
-@brief Transfers all ETH minus the minval to the receiver wallet
+@brief Withdraws all fees to the receiver wallet
 """
 def doWithdrawFees(idx):
     global orchestrators
@@ -375,8 +375,11 @@ while True:
             log("Waiting for staked LPT for {0} to reach threshold {1}. Currently has a stake of {2:.2f} LPT.".format(orchestrators[i].srcAddr, LPT_THRESHOLD, orchestrators[i].pendingLPT))
         else:
             log("Delegator {0} has a stake of {1:.2f} LPT which exceeds the minimum threshold of {2:.2f}...".format(orchestrators[i].srcAddr, orchestrators[i].pendingLPT, LPT_THRESHOLD))
-            doTransferBond(i)
-            refreshStake(i)
+            if currentRoundLocked:
+                doTransferBond(i)
+                refreshStake(i)
+            else:
+                log("Waiting for round to be locked before transferring bond")
 
         # Then check pending ETH -> WithdrawFees
         if currentCheckTime < orchestrators[i].lastEthCheck + WAIT_TIME_ETH_REFRESH:
