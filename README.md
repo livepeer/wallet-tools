@@ -7,9 +7,9 @@ Modify the script to use your orchs ETH keystore file: ```nano /OrchestratorSyph
 Dependencies:
 
 ```
-pip install eth-hash
-pip install eth-utils
 pip install web3
+pip install eth-utils
+pip install setuptools
 ```
 
 Run the script manually to test if it works:
