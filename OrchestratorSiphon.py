@@ -29,7 +29,7 @@ ORCH_TARGETS = [
         'orch public address, ie: 0x847791cbf03be716a7fe9dc8c9affe17bd49ae5e',
         'receiver public address, ie: 0x13c4299Cc484C9ee85c7315c18860d6C377c03bf'
     )
-] 
+]
 
 # Fill in these to get Telegram notifications
 # TODO
@@ -43,11 +43,11 @@ ETH_THRESHOLD = 0.20    #< Amount of pending fees before triggering WithdrawFees
 ETH_MINVAL = 0.02       #< Amount of ETH to keep in the wallet for ticket redemptions etc
 L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'
 
-### Wait times in seconds: higher values == less RPC calls being made
+### Wait & cache times in seconds: higher values == less RPC calls being made
 WAIT_TIME_ROUND_REFRESH = 60 * 15       #< Check for a change in round num or lock state
 WAIT_TIME_LPT_REFRESH = 60 * 60 * 4     #< Check for a change in pending LPT
 WAIT_TIME_ETH_REFRESH = 60 * 60 * 4     #< Check for a change in pending ETH
-WAIT_TIME_IDLE = 60 #< Sleep time between each check for LPT or ETH thresholds being met
+WAIT_TIME_IDLE = 60 #< Sleep time for the main event loop, how long to wait before it re-checks all timers and values
 
 # Internal globals - Probably don't edit these
 BONDING_CONTRACT_ADDR = '0x35Bcf3c30594191d53231E4FF333E8A770453e40'
@@ -98,7 +98,7 @@ def getChecksumAddr(wallet):
 
 bondingABI = getABI("./BondingManagerTarget.json")
 roundsABI = getABI("./RoundsManagerTarget.json")
-# connect to L2 grpc provider
+# connect to L2 rpc provider
 provider = web3.HTTPProvider(L2_RPC_PROVIDER)
 w3 = web3.Web3(provider)
 assert w3.is_connected()
@@ -142,7 +142,7 @@ def refreshLock():
     except Exception as e:
         log("Unable to refresh round lock status: {0}".format(e))
 
-# Gets the last round the orch called reward
+# Refreshes the last round the orch called reward
 def refreshRewardRound(idx):
     global orchestrators
     try:
@@ -257,7 +257,7 @@ def doWithdrawFees(idx):
         targetAddress = orchestrators[idx].parsedTargetAddr
         if orchestrators[idx].ethBalance < ETH_MINVAL:
             targetAddress = orchestrators[idx].parsedSrcAddr
-            log("{0} has a balance of {1:.2f} LPT. Withdrawing fees to the Orch wallet to maintain the minimum balance of {2:.2f}}".format(orchestrators[idx].srcAddr, orchestrators[idx].ethBalance, ETH_MINVAL))
+            log("{0} has a balance of {1:.4f} ETH. Withdrawing fees to the Orch wallet to maintain the minimum balance of {2:.4f}}".format(orchestrators[idx].srcAddr, orchestrators[idx].ethBalance, ETH_MINVAL))
         else:
             log("Withdrawing {0} WEI directly to receiver wallet {1}".format(transfer_amount, orchestrators[idx].targetAddr))
         # Build transaction info
