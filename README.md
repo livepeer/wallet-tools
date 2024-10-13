@@ -1,20 +1,25 @@
 ﻿# OrchestratorSyphon
-```git clone https://github.com/stronk-dev/OrchestratorSiphon.git```
-Modify ```nano /OrchestratorSyphon/OrchestratorSyphon.py``` config variables at the top of the file
 
-Installation instructions:
+Clone repo to your machine: ```git clone https://github.com/stronk-dev/OrchestratorSiphon.git```
+
+Modify the script to use your orchs ETH keystore file: ```nano /OrchestratorSyphon/OrchestratorSyphon.py```
+
+Dependencies:
 
 ```
 pip install eth-hash
 pip install eth-utils
 pip install web3
+```
+
+Run the script manually to test if it works:
+```
 python3 OrchestratorSyphon.py
 ```
 
-Example systemd script:
+Example systemd script (modify paths):
 ```sudo nano /etc/systemd/system/orchSiphon.service```
 
-insert following:
 ```
 [Unit]
 Description=LPT bond transfer
@@ -30,10 +35,12 @@ ExecStart=/usr/bin/python3 -u /path/to/OrchestratorSyphon/OrchestratorSyphon.py
 WantedBy=multi-user.target
 ```
 
-Save service file and type following commands:
+Save service file and enable the service:
 
+```
 systemctl daemon-reload
 systemctl enable --now orchSiphon.service
+```
 
-journalctl -u orchSiphon.service -n 500 -f
+Check logs: ```journalctl -u orchSiphon.service -n 500 -f```
 
