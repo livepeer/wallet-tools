@@ -41,7 +41,6 @@ ORCH_TARGETS = [
 LPT_THRESHOLD = 100     #< Amount of pending stake before triggering TransferBond
 ETH_THRESHOLD = 0.20    #< Amount of pending fees before triggering WithdrawFees
 ETH_MINVAL = 0.02       #< Amount of ETH to keep in the wallet for ticket redemptions etc
-ETH_MAXVAL = 0.20       #< Amount of ETH to trigger a withdrawal to the receiver
 L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'
 
 ### Wait times in seconds: higher values == less RPC calls being made
@@ -393,8 +392,8 @@ while True:
             checkEthBalance(i)
 
         # Check ETH balance -> transfer ETH to receiver
-        if orchestrators[i].ethBalance < ETH_MAXVAL:
-            log("Waiting for ETH in wallet of {0} to reach threshold {1}.".format(orchestrators[i].srcAddr, ETH_MAXVAL))
+        if orchestrators[i].ethBalance < ETH_THRESHOLD:
+            log("Waiting for ETH in wallet of {0} to reach threshold {1}.".format(orchestrators[i].srcAddr, ETH_THRESHOLD))
         else:
             log("Delegator {0} has {1:.4f} ETH in their wallet which exceeds the minimum threshold of {2:.4f}, continuing...".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD))
             doSendFees(i)
