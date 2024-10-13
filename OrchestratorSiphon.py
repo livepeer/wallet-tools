@@ -414,7 +414,7 @@ while True:
 
         # Refresh Orch reward round
         if currentCheckTime < orchestrators[i].lastRoundCheck + WAIT_TIME_ROUND_REFRESH:
-            log("Checking {0}'s pending ETH fees in {1:.0f} seconds...".format(orchestrators[i].srcAddr, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - orchestrators[i].lastRoundCheck)))
+            log("Checking {0}'s last reward round in {1:.0f} seconds...".format(orchestrators[i].srcAddr, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - orchestrators[i].lastRoundCheck)))
         else:
             orchestrators[i].lastRoundCheck = datetime.now(timezone.utc).timestamp()
             refreshRewardRound(i)
