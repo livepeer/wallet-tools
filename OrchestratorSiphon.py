@@ -119,14 +119,16 @@ rounds_contract = w3.eth.contract(address=ROUNDS_CONTRACT_ADDR, abi=roundsABI)
 """
 def refreshRound():
     global currentRoundNum
+    global lastRoundRefresh
     try:
         thisRound = rounds_contract.functions.currentRound().call()
+        lastRoundRefresh = datetime.now(timezone.utc).timestamp()
         if thisRound > currentRoundNum:
-            log("Round number changed to '{0}'".format(thisRound))
+            log("Round number changed to {0}".format(thisRound))
             currentRoundNum = thisRound
             return True
     except Exception as e:
-        log("Unable to refresh round number: '{0}'".format(e))
+        log("Unable to refresh round number: {0}".format(e))
     return False
 
 """
@@ -138,7 +140,7 @@ def refreshLock():
         newLock = rounds_contract.functions.currentRoundLocked().call()
         currentRoundLocked = newLock
     except Exception as e:
-        log("Unable to refresh round lock status: '{0}'".format(e))
+        log("Unable to refresh round lock status: {0}".format(e))
 
 # Gets the last round the orch called reward
 def refreshRewardRound(idx):
@@ -150,9 +152,10 @@ def refreshRewardRound(idx):
         #                              lastFeeRound])
         orchestratorInfo = bonding_contract.functions.getTranscoder(orchestrators[idx].parsedSrcAddr).call()
         orchestrators[idx].lastRewardRound = orchestratorInfo[0]
-        log("Latest reward round for Orchestrator '{0}' is {1} and the latest livepeer round is {2}".format(orchestrators[idx].srcAddr, orchestrators[idx].lastRewardRound, currentRoundNum))
+        orchestrators[idx].lastRoundCheck = datetime.now(timezone.utc).timestamp()
+        log("Latest reward round for {0} is {1}".format(orchestrators[idx].srcAddr, orchestrators[idx].lastRewardRound))
     except Exception as e:
-        log("Unable to refresh round lock status: '{0}'".format(e))
+        log("Unable to refresh round lock status: {0}".format(e))
 
 
 # Orch LPT logic
@@ -166,8 +169,9 @@ def refreshStake(idx):
     try:
         pending_lptu = bonding_contract.functions.pendingStake(orchestrators[idx].parsedSrcAddr, 99999).call()
         pending_lpt = web3.Web3.from_wei(pending_lptu, 'ether')
-        orchestrators[idx].pendingLPT = pending_lpt;
-        log("Delegator {0} is currently staking {1:.2f} LPT".format(orchestrators[idx].srcAddr, pending_lpt))
+        orchestrators[idx].pendingLPT = pending_lpt
+        orchestrators[idx].lastLptCheck = datetime.now(timezone.utc).timestamp()
+        log("{0} currently has {1:.2f} LPT available for unstaking".format(orchestrators[idx].srcAddr, pending_lpt))
     except Exception as e:
         log("Unable to refresh stake: '{0}'".format(e))
 
@@ -195,14 +199,15 @@ def doTransferBond(idx):
         log("Initiated transaction with hash {0}".format(transactionHash))
         # Wait for transaction to be confirmed
         receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
-        log("Completed transaction {0}".format(receipt))
+        # log("Completed transaction {0}".format(receipt))
+        log('Transfer bond success.')
     except Exception as e:
-        log("Unable to transfer bond: '{0}'".format(e))
+        log("Unable to transfer bond: {0}".format(e))
 
 def doCallReward(idx):
     global orchestrators
     try:
-        log("Calling reward for Orchetrator '{0}'".format(orchestrators[idx].srcAddr))
+        log("Calling reward for {0}".format(orchestrators[idx].srcAddr))
         # Build transaction info
         tx = bonding_contract.functions.reward().build_transaction(
             {
@@ -217,11 +222,11 @@ def doCallReward(idx):
         log("Initiated transaction with hash {0}".format(transactionHash))
         # Wait for transaction to be confirmed
         receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
-        log("Completed transaction {0}".format(receipt))
+        # log("Completed transaction {0}".format(receipt))
         log('Call to reward success.')
         orchestrators[i].hasCalledReward = True
     except Exception as e:
-        log("Unable to call reward: '{0}'".format(e))
+        log("Unable to call reward: {0}".format(e))
         orchestrators[i].hasCalledReward = False
 
 
@@ -237,6 +242,7 @@ def refreshFees(idx):
         pending_wei = bonding_contract.functions.pendingFees(orchestrators[idx].parsedSrcAddr, 99999).call()
         pending_eth = web3.Web3.from_wei(pending_wei, 'ether')
         orchestrators[idx].pendingETH = pending_eth
+        orchestrators[idx].lastEthCheck = datetime.now(timezone.utc).timestamp()
         log("Delegator {0} has {1:.6f} ETH in pending fees".format(orchestrators[idx].srcAddr, pending_eth))
     except Exception as e:
         log("Unable to refresh fees: '{0}'".format(e))
@@ -263,7 +269,8 @@ def doWithdrawFees(idx):
         log("Initiated transaction with hash {0}".format(transactionHash))
         # Wait for transaction to be confirmed
         receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
-        log("Completed transaction {0}".format(receipt))
+        # log("Completed transaction {0}".format(receipt))
+        log('Withdraw fees success.')
     except Exception as e:
         log("Unable to withdraw fees: '{0}'".format(e))
 
@@ -350,9 +357,11 @@ while True:
 
     # Check for round updates
     if currentCheckTime < lastRoundRefresh + WAIT_TIME_ROUND_REFRESH:
-        log("Refreshing round status in {0:.0f} seconds...".format(WAIT_TIME_ROUND_REFRESH - (currentCheckTime - lastRoundRefresh)))
+        if currentRoundLocked:
+            log("(cached) Round status: round {1} (locked). Refreshing in {2:.0f} seconds...".format(currentRoundNum, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - lastRoundRefresh)))
+        else:
+            log("(cached) Round status: round {1} (unlocked). Refreshing in {2:.0f} seconds...".format(currentRoundNum, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - lastRoundRefresh)))
     else:
-        lastRoundRefresh = datetime.now(timezone.utc).timestamp()
         if refreshRound():
             # Reset hasCalledReward flags for all O's since the latest round has changed
             for j in range(len(orchestrators)):
@@ -365,16 +374,15 @@ while True:
 
         # First check pending LPT -> TransferBond to receiver
         if currentCheckTime < orchestrators[i].lastLptCheck + WAIT_TIME_LPT_REFRESH:
-            log("Refreshing pending LPT for {0} in {1:.0f} seconds...".format(orchestrators[i].srcAddr, WAIT_TIME_LPT_REFRESH - (currentCheckTime - orchestrators[i].lastLptCheck)))
+            log("(cached) {0}'s pending stake is {1:.2f} LPT. Refreshing in {2:.0f} seconds...".format(orchestrators[i].srcAddr, orchestrators[i].pendingLPT, WAIT_TIME_LPT_REFRESH - (currentCheckTime - orchestrators[i].lastLptCheck)))
         else:
-            orchestrators[i].lastLptCheck = datetime.now(timezone.utc).timestamp()
             refreshStake(i)
 
         # Withdraw pending LPT at the end of round if threshold is reached
         if orchestrators[i].pendingLPT < LPT_THRESHOLD:
-            log("Waiting for staked LPT for {0} to reach threshold {1}. Currently has a stake of {2:.2f} LPT.".format(orchestrators[i].srcAddr, LPT_THRESHOLD, orchestrators[i].pendingLPT))
+            log("{0} has {1:.2f} LPT in pending stake < threshold {0:.2f}.".format(orchestrators[i].srcAddr, orchestrators[i].pendingLPT, LPT_THRESHOLD))
         else:
-            log("Delegator {0} has a stake of {1:.2f} LPT which exceeds the minimum threshold of {2:.2f}...".format(orchestrators[i].srcAddr, orchestrators[i].pendingLPT, LPT_THRESHOLD))
+            log("{0} has {1:.2f} LPT pending stake > threshold {2:.2f}, transferring bond...".format(orchestrators[i].srcAddr, orchestrators[i].pendingLPT, LPT_THRESHOLD))
             if currentRoundLocked:
                 doTransferBond(i)
                 refreshStake(i)
@@ -383,25 +391,24 @@ while True:
 
         # Then check pending ETH -> WithdrawFees
         if currentCheckTime < orchestrators[i].lastEthCheck + WAIT_TIME_ETH_REFRESH:
-            log("Checking {0}'s pending ETH fees in {1:.0f} seconds...".format(orchestrators[i].srcAddr, WAIT_TIME_ETH_REFRESH - (currentCheckTime - orchestrators[i].lastEthCheck)))
+            log("(cached) {0}'s pending fees is {1:.4f} ETH. Refreshing in {2:.0f} seconds...".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, WAIT_TIME_ETH_REFRESH - (currentCheckTime - orchestrators[i].lastEthCheck)))
         else:
-            orchestrators[i].lastEthCheck = datetime.now(timezone.utc).timestamp()
             refreshFees(i)
             checkEthBalance(i)
 
         # Withdraw pending ETH if threshold is reached 
         if orchestrators[i].pendingETH < ETH_THRESHOLD:
-            log("Waiting for pending fees to reach threshold {0:.4f}.".format(ETH_THRESHOLD))
+            log("{0} has {1:.4f} ETH in pending fees < threshold {0:.4f}.".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, ETH_THRESHOLD))
         else:
-            log("Delegator {0} has {1:.4f} in ETH fees which exceeds the minimum threshold of {2:.4f}, continuing...".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, ETH_THRESHOLD))
+            log("{0} has {1:.4f} in ETH pending fees > threshold {2:.4f}, withdrawing fees...".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, ETH_THRESHOLD))
             doWithdrawFees(i)
             checkEthBalance(i)
 
         # Check ETH balance -> transfer ETH to receiver
         if orchestrators[i].ethBalance < ETH_THRESHOLD:
-            log("Waiting for ETH in wallet of {0} to reach threshold {1}.".format(orchestrators[i].srcAddr, ETH_THRESHOLD))
+            log("{0} has {1:.4f} ETH in their wallet < threshold {1:.4f}.".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD))
         else:
-            log("Delegator {0} has {1:.4f} ETH in their wallet which exceeds the minimum threshold of {2:.4f}, continuing...".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD))
+            log("{0} has {1:.4f} in ETH pending fees > threshold {2:.4f}, sending ETH to {3}...".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD, orchestrators[i].targetAddr))
             doSendFees(i)
             checkEthBalance(i)
 
@@ -409,24 +416,23 @@ while True:
         
         # We can continue immediately if the latest round has not changed
         if orchestrators[i].hasCalledReward:
-            log("Done for Orchestrator '{0}' as they have called reward this round".format(orchestrators[i].srcAddr))
+            log("Done for '{0}' as they have called reward this round".format(orchestrators[i].srcAddr))
             continue
 
         # Refresh Orch reward round
         if currentCheckTime < orchestrators[i].lastRoundCheck + WAIT_TIME_ROUND_REFRESH:
-            log("Checking {0}'s last reward round in {1:.0f} seconds...".format(orchestrators[i].srcAddr, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - orchestrators[i].lastRoundCheck)))
+            log("(cached) {0}'s last reward round is {1}. Refreshing in {2:.0f} seconds...".format(orchestrators[i].srcAddr, orchestrators[i].lastRewardRound, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - orchestrators[i].lastRoundCheck)))
         else:
-            orchestrators[i].lastRoundCheck = datetime.now(timezone.utc).timestamp()
             refreshRewardRound(i)
 
         # Call reward
         if orchestrators[i].lastRewardRound < currentRoundNum:
-            log("Orchestrator {0} last called reward in round {1}, but the latest round is {2}".format(orchestrators[i].srcAddr, orchestrators[i].lastRewardRound, currentRoundNum))
+            log("{0} last called reward in round {1}, but the latest round is {2}. Calling reward...".format(orchestrators[i].srcAddr, orchestrators[i].lastRewardRound, currentRoundNum))
             doCallReward(i)
             refreshRewardRound(i)
         else:
             orchestrators[i].hasCalledReward = True
-            log("Orchestrator {0} has already called reward in round {1}".format(orchestrators[i].srcAddr, currentRoundNum))
+            log("{0} has already called reward in round {1}".format(orchestrators[i].srcAddr, currentRoundNum))
 
     # Sleep 30s until next refresh 
     delay = WAIT_TIME_IDLE
