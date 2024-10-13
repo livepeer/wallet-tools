@@ -77,7 +77,7 @@ def getABI(path):
             info_json = json.load(f)
             return info_json["abi"]
     except Exception as e:
-        log("Unable to extract ABI data: ".format(e))
+        log("Unable to extract ABI data: {0}".format(e))
         exit(1)
 
 """
@@ -89,7 +89,7 @@ def getChecksumAddr(wallet):
         parsed_wallet = web3.Web3.to_checksum_address(wallet.lower())
         return parsed_wallet
     except Exception as e:
-        log("Unable to parse delegator wallet address: ".format(e))
+        log("Unable to parse delegator wallet address: {0}".format(e))
         exit(1)
 
 
