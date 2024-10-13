@@ -76,8 +76,8 @@ def getABI(path):
         with open(path) as f:
             info_json = json.load(f)
             return info_json["abi"]
-    except:
-        log("Unable to extract ABI data. Is {0} a valid path?".format(path))
+    except Exception as e:
+        log("Unable to extract ABI data: ".format(e))
         exit(1)
 
 """
@@ -88,8 +88,8 @@ def getChecksumAddr(wallet):
     try:
         parsed_wallet = web3.Web3.to_checksum_address(wallet.lower())
         return parsed_wallet
-    except:
-        log("Unable to parse delegator wallet address. Is {0} a valid address?".format(wallet))
+    except Exception as e:
+        log("Unable to parse delegator wallet address: ".format(e))
         exit(1)
 
 
