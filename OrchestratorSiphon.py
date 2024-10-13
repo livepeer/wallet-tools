@@ -89,7 +89,7 @@ def getChecksumAddr(wallet):
         parsed_wallet = web3.Web3.to_checksum_address(wallet.lower())
         return parsed_wallet
     except Exception as e:
-        log("Unable to parse delegator wallet address: {0}".format(e))
+        log("Unable to parse wallet address: {0}".format(e))
         exit(1)
 
 
@@ -243,7 +243,7 @@ def refreshFees(idx):
         pending_eth = web3.Web3.from_wei(pending_wei, 'ether')
         orchestrators[idx].pendingETH = pending_eth
         orchestrators[idx].lastEthCheck = datetime.now(timezone.utc).timestamp()
-        log("Delegator {0} has {1:.6f} ETH in pending fees".format(orchestrators[idx].srcAddr, pending_eth))
+        log("{0} has {1:.6f} ETH in pending fees".format(orchestrators[idx].srcAddr, pending_eth))
     except Exception as e:
         log("Unable to refresh fees: '{0}'".format(e))
 
@@ -283,7 +283,7 @@ def checkEthBalance(idx):
         weiBalance = w3.eth.get_balance(orchestrators[idx].parsedSrcAddr)
         ethBalance = web3.Web3.from_wei(weiBalance, 'ether')
         orchestrators[idx].ethBalance = ethBalance
-        log("Delegator {0} currently has {1:.4f} ETH in their wallet".format(orchestrators[idx].srcAddr, ethBalance))
+        log("{0} currently has {1:.4f} ETH in their wallet".format(orchestrators[idx].srcAddr, ethBalance))
     except Exception as e:
         log("Unable to get ETH balance: '{0}'".format(e))
 
@@ -358,9 +358,9 @@ while True:
     # Check for round updates
     if currentCheckTime < lastRoundRefresh + WAIT_TIME_ROUND_REFRESH:
         if currentRoundLocked:
-            log("(cached) Round status: round {1} (locked). Refreshing in {2:.0f} seconds...".format(currentRoundNum, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - lastRoundRefresh)))
+            log("(cached) Round status: round {0} (locked). Refreshing in {1:.0f} seconds...".format(currentRoundNum, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - lastRoundRefresh)))
         else:
-            log("(cached) Round status: round {1} (unlocked). Refreshing in {2:.0f} seconds...".format(currentRoundNum, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - lastRoundRefresh)))
+            log("(cached) Round status: round {0} (unlocked). Refreshing in {1:.0f} seconds...".format(currentRoundNum, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - lastRoundRefresh)))
     else:
         if refreshRound():
             # Reset hasCalledReward flags for all O's since the latest round has changed
