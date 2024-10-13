@@ -250,7 +250,7 @@ def doWithdrawFees(idx):
         transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].pendingETH), 'ether')
         log("Should withdraw {0} WEI".format(transfer_amount))
         # Build transaction info
-        tx = bonding_contract.functions.withdrawFees(orchestrators[idx].parsedSrcAddr, transfer_amount).build_transaction(
+        tx = bonding_contract.functions.withdrawFees(orchestrators[idx].parsedTargetAddr, transfer_amount).build_transaction(
             {
                 "from": orchestrators[idx].parsedSrcAddr,
                 "gasPrice": 1000000000,
