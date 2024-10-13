@@ -368,28 +368,28 @@ while True:
                 orchestrators[j].hasCalledReward = False
         refreshLock()
 
-    # Main logic: check each Orch
+    # Main logic: check each added Orch
     for i in range(len(orchestrators)):
         log("Refreshing Orchestrator '{0}'".format(orchestrators[i].srcAddr))
 
-        # First check pending LPT -> TransferBond to receiver
+        # First check pending LPT
         if currentCheckTime < orchestrators[i].lastLptCheck + WAIT_TIME_LPT_REFRESH:
             log("(cached) {0}'s pending stake is {1:.2f} LPT. Refreshing in {2:.0f} seconds...".format(orchestrators[i].srcAddr, orchestrators[i].pendingLPT, WAIT_TIME_LPT_REFRESH - (currentCheckTime - orchestrators[i].lastLptCheck)))
         else:
             refreshStake(i)
 
-        # Withdraw pending LPT at the end of round if threshold is reached
+        # Transfer pending LPT at the end of round if threshold is reached
         if orchestrators[i].pendingLPT < LPT_THRESHOLD:
-            log("{0} has {1:.2f} LPT in pending stake < threshold {2:.2f}.".format(orchestrators[i].srcAddr, orchestrators[i].pendingLPT, LPT_THRESHOLD))
+            log("{0} has {1:.2f} LPT in pending stake < threshold of {2:.2f} LPT".format(orchestrators[i].srcAddr, orchestrators[i].pendingLPT, LPT_THRESHOLD))
         else:
-            log("{0} has {1:.2f} LPT pending stake > threshold {2:.2f}, transferring bond...".format(orchestrators[i].srcAddr, orchestrators[i].pendingLPT, LPT_THRESHOLD))
+            log("{0} has {1:.2f} LPT pending stake > threshold of {2:.2f} LPT, transferring bond...".format(orchestrators[i].srcAddr, orchestrators[i].pendingLPT, LPT_THRESHOLD))
             if currentRoundLocked:
                 doTransferBond(i)
                 refreshStake(i)
             else:
                 log("Waiting for round to be locked before transferring bond")
 
-        # Then check pending ETH -> WithdrawFees
+        # Then check pending ETH balance
         if currentCheckTime < orchestrators[i].lastEthCheck + WAIT_TIME_ETH_REFRESH:
             log("(cached) {0}'s pending fees is {1:.4f} ETH. Refreshing in {2:.0f} seconds...".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, WAIT_TIME_ETH_REFRESH - (currentCheckTime - orchestrators[i].lastEthCheck)))
         else:
@@ -398,17 +398,17 @@ while True:
 
         # Withdraw pending ETH if threshold is reached 
         if orchestrators[i].pendingETH < ETH_THRESHOLD:
-            log("{0} has {1:.4f} ETH in pending fees < threshold {2:.4f}.".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, ETH_THRESHOLD))
+            log("{0} has {1:.4f} ETH in pending fees < threshold of {2:.4f} ETH".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, ETH_THRESHOLD))
         else:
-            log("{0} has {1:.4f} in ETH pending fees > threshold {2:.4f}, withdrawing fees...".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, ETH_THRESHOLD))
+            log("{0} has {1:.4f} in ETH pending fees > threshold of {2:.4f} ETH, withdrawing fees...".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, ETH_THRESHOLD))
             doWithdrawFees(i)
             checkEthBalance(i)
 
-        # Check ETH balance -> transfer ETH to receiver
+        # Transfer ETH to receiver if threshold is reached
         if orchestrators[i].ethBalance < ETH_THRESHOLD:
-            log("{0} has {1:.4f} ETH in their wallet < threshold {2:.4f}.".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD))
+            log("{0} has {1:.4f} ETH in their wallet < threshold of {2:.4f} ETH".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD))
         else:
-            log("{0} has {1:.4f} in ETH pending fees > threshold {2:.4f}, sending ETH to {3}...".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD, orchestrators[i].targetAddr))
+            log("{0} has {1:.4f} in ETH pending fees > threshold of {2:.4f} ETH, sending some to {3}...".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD, orchestrators[i].targetAddr))
             doSendFees(i)
             checkEthBalance(i)
 
@@ -427,7 +427,7 @@ while True:
 
         # Call reward
         if orchestrators[i].lastRewardRound < currentRoundNum:
-            log("{0} last called reward in round {1}, but the latest round is {2}. Calling reward...".format(orchestrators[i].srcAddr, orchestrators[i].lastRewardRound, currentRoundNum))
+            log("Calling reward for {0}...".format(orchestrators[i].srcAddr))
             doCallReward(i)
             refreshRewardRound(i)
         else:
