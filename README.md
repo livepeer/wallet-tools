@@ -1,8 +1,8 @@
-﻿# OrchestratorSyphon
+﻿# OrchestratorSiphon
 
 Clone repo to your machine: ```git clone https://github.com/stronk-dev/OrchestratorSiphon.git```
 
-Modify the script to use your orchs ETH keystore file: ```nano /OrchestratorSyphon/OrchestratorSyphon.py```
+Modify the script to use your orchs ETH keystore file: ```nano OrchestratorSiphon/OrchestratorSiphon.py```
 
 Dependencies:
 
@@ -14,7 +14,7 @@ pip install setuptools
 
 Run the script manually to test if it works:
 ```
-python3 OrchestratorSyphon.py
+python3 OrchestratorSiphon/OrchestratorSiphon.py
 ```
 
 Example systemd script (modify paths):
@@ -28,8 +28,8 @@ After=multi-user.target
 [Service]
 Type=simple
 Restart=always
-WorkingDirectory=/path/to/OrchestratorSyphon
-ExecStart=/usr/bin/python3 -u /path/to/OrchestratorSyphon/OrchestratorSyphon.py
+WorkingDirectory=/path/to/OrchestratorSiphon
+ExecStart=/usr/bin/python3 -u /path/to/OrchestratorSiphon/OrchestratorSiphon.py
 
 [Install]
 WantedBy=multi-user.target
