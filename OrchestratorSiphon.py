@@ -6,9 +6,6 @@ import time
 import sys
 from datetime import datetime, timezone
 
-
-# TODO: properly parse ETH key on disk, let's not put the private key in here like this
-
 # TODO: notifications every time it transfers LPT, ETH , reward calls
 # point it to an SMTP server or Telegram bot
 
@@ -18,14 +15,20 @@ from datetime import datetime, timezone
 
 # Don't change this class
 class OrchConf:
-  def __init__(self, key, pub, tgt):
-    self._srcKey = key
+  def __init__(self, key, pw, pub, tgt):
+    self._srcKeyPath = key
+    self._srcKeyPwPath = pw
     self._srcAddr = pub
     self._targetAddr = tgt
 
 # Definitely change this. You can add multiple Orchestrators and separate them with a comma
 ORCH_TARGETS = [
-    OrchConf('InsertDelegatorPrivateKey', 'InsertDelegatorWalletAddress', 'InsertReceiverWalletAddress')
+    OrchConf(
+        'path to livepeer keystore file',
+        'path to file with keystore password',
+        'orch public address, ie: 0x847791cbf03be716a7fe9dc8c9affe17bd49ae5e',
+        'receiver public address, ie: 0x13c4299Cc484C9ee85c7315c18860d6C377c03bf'
+    )
 ] 
 
 # Fill in these to get Telegram notifications
@@ -120,7 +123,7 @@ def refreshRound():
     try:
         thisRound = rounds_contract.functions.currentRound().call()
         if thisRound > currentRoundNum:
-            log("Round number changed to '{0}'".format(currentRoundNum))
+            log("Round number changed to '{0}'".format(thisRound))
             currentRoundNum = thisRound
             return True
     except Exception as e:
@@ -309,8 +312,13 @@ def doSendFees(idx):
 class Orchestrator:
     def __init__(self, obj):
         # Orch details
-        self.srcKey = obj._srcKey
         self.srcAddr = obj._srcAddr
+        # Get private key
+        with open(obj._srcKeyPath) as keyfile:
+            encrypted_key = keyfile.read()
+            with open(obj._srcKeyPwPath) as pwfile:
+                keyPw = pwfile.read()
+                self.srcKey = w3.eth.account.decrypt(encrypted_key, keyPw.rstrip('\n'))
         self.parsedSrcAddr = getChecksumAddr(obj._srcAddr)
         self.targetAddr = obj._targetAddr
         self.parsedTargetAddr = getChecksumAddr(obj._targetAddr)
