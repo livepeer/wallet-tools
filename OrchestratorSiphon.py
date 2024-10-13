@@ -286,6 +286,9 @@ def checkEthBalance(idx):
 def doSendFees(idx):
     global orchestrators
     try:
+        if ETH_MINVAL > orchestrators[idx].ethBalance:
+            log("Cannot transfer ETH, as the minimum value to leave behind is larger than the balance")
+            return
         transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].ethBalance) - ETH_MINVAL, 'ether')
         log("Should transfer {0} wei".format(transfer_amount))
         # Build transaction info
