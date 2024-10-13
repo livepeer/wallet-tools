@@ -254,9 +254,14 @@ def doWithdrawFees(idx):
     global orchestrators
     try:
         transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].pendingETH) - 0.00001, 'ether')
-        log("Should withdraw {0} WEI".format(transfer_amount))
+        targetAddress = orchestrators[idx].parsedTargetAddr
+        if orchestrators[idx].ethBalance < ETH_MINVAL:
+            targetAddress = orchestrators[idx].parsedSrcAddr
+            log("{0} has a balance of {1:.2f} LPT. Withdrawing fees to the Orch wallet to maintain the minimum balance of {2:.2f}}".format(orchestrators[idx].srcAddr, orchestrators[idx].ethBalance, ETH_MINVAL))
+        else:
+            log("Withdrawing {0} WEI directly to receiver wallet {1}".format(transfer_amount, orchestrators[idx].targetAddr))
         # Build transaction info
-        tx = bonding_contract.functions.withdrawFees(orchestrators[idx].parsedTargetAddr, transfer_amount).build_transaction(
+        tx = bonding_contract.functions.withdrawFees(targetAddress, transfer_amount).build_transaction(
             {
                 "from": orchestrators[idx].parsedSrcAddr,
                 "gasPrice": 1000000000,
