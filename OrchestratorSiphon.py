@@ -247,7 +247,7 @@ def refreshFees(idx):
 def doWithdrawFees(idx):
     global orchestrators
     try:
-        transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].pendingETH), 'ether')
+        transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].pendingETH) - 0.00001, 'ether')
         log("Should withdraw {0} WEI".format(transfer_amount))
         # Build transaction info
         tx = bonding_contract.functions.withdrawFees(orchestrators[idx].parsedTargetAddr, transfer_amount).build_transaction(
