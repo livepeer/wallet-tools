@@ -29,7 +29,8 @@ ORCH_TARGETS = [
         'path to livepeer keystore file',
         'path to file with keystore password',
         'orch public address, ie: 0x847791cbf03be716a7fe9dc8c9affe17bd49ae5e',
-        'receiver public address, ie: 0x13c4299Cc484C9ee85c7315c18860d6C377c03bf'
+        'ETH receiver public address, ie: 0x13c4299Cc484C9ee85c7315c18860d6C377c03bf',
+        'LPT receiver public address, ie: 0x13c4299Cc484C9ee85c7315c18860d6C377c03bf'
     )
 ]
 
