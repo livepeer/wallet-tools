@@ -137,8 +137,6 @@ def clearPassword(filePath):
 
 
 def getPrivateKey(keystorePath, passwordPath):
-    if passwordPath == "":
-        return ""
     try:
         with open(keystorePath) as keyfile:
             encrypted_key = keyfile.read()
@@ -430,12 +428,7 @@ def getInputAsInt():
 @brief Asks the user for keystore passwords or choose from an option menu
 """
 def handleUserInput():
-    global orchestrators
     global requiresUserInput
-    # For each Orch with no srcKey, decrypt
-    for i in range(len(orchestrators)):
-        while orchestrators[i].srcKey == "":
-            orchestrators[i].srcKey = getPrivateKey(orchestrators[i].srcKeypath, getpass("Enter the password for {0}: ".format(orchestrators[i].srcAddr)))
     # Else continue to menu
     while True:
         printOptions()
@@ -541,12 +534,18 @@ class Orchestrator:
         # Orch details
         self.srcAddr = obj._srcAddr
         self.srcKeypath = obj._srcKeyPath
-        self.srcKeyPwPath = obj._srcKeyPwPath
         # Get private key
-        self.srcKey = getPrivateKey(obj._srcKeyPath, obj._srcKeyPwPath)
-        # Immediately clear the text file containing the password
-        if CLEAR_PASSWORD_AFTER_BOOT:
-            clearPassword(obj._srcKeyPwPath)
+        if obj._srcKeyPwPath == "":
+            self.srcKey = ""
+        else:
+            self.srcKey = getPrivateKey(obj._srcKeyPath, obj._srcKeyPwPath)
+            # Immediately clear the text file containing the password
+            if CLEAR_PASSWORD_AFTER_BOOT:
+                clearPassword(obj._srcKeyPwPath)
+            # If the password was set via file but failed to decrypt, exit
+            if self.srcKey == "":
+                log("Fatal error: Unable to decrypt keystore file. Exiting...")
+                exit(1)
         self.parsedSrcAddr = getChecksumAddr(obj._srcAddr)
         # Set target adresses
         self.targetAddrETH = obj._targetAddrETH
@@ -569,12 +568,10 @@ for obj in ORCH_TARGETS:
     log("Adding Orchestrator '{0}'".format(obj._srcAddr))
     orchestrators.append(Orchestrator(obj))
 
-# Check if we have all keystores unlocked. Else we need to switch to interative mode
-for orch in orchestrators:
-    # Assume everything is fine
-    requiresUserInput = False
-    if orch.srcKey == "":
-        requiresUserInput = True
+# For each Orch with no password set, decrypt by user input
+for i in range(len(orchestrators)):
+    while orchestrators[i].srcKey == "":
+        orchestrators[i].srcKey = getPrivateKey(orchestrators[i].srcKeypath, getpass("Enter the password for {0}: ".format(orchestrators[i].srcAddr)))
 
 # Main loop
 while True:
