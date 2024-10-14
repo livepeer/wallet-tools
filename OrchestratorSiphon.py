@@ -455,6 +455,7 @@ while True:
             log("Calling reward for {0}...".format(orchestrators[i].srcAddr))
             doCallReward(i)
             refreshRewardRound(i)
+            refreshStake(i)
         else:
             orchestrators[i].hasCalledReward = True
             log("{0} has already called reward in round {1}".format(orchestrators[i].srcAddr, currentRoundNum))
