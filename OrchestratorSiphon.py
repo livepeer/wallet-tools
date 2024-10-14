@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 
 # TODO: add config option to unbond->withdraw->transfer LPT as opposed to TransferBond
 
+# TODO: for tranferring bond: instead of waiting for a round lock, wait for the Delegators' orch to have called reward
+
 ### Global Config
 
 
@@ -122,7 +124,6 @@ rounds_contract = w3.eth.contract(address=ROUNDS_CONTRACT_ADDR, abi=roundsABI)
 
 """
 @brief Refreshes the current round number
-@return boolean: whether the round number has changed
 """
 def refreshRound():
     global currentRoundNum
@@ -130,13 +131,10 @@ def refreshRound():
     try:
         thisRound = rounds_contract.functions.currentRound().call()
         lastRoundRefresh = datetime.now(timezone.utc).timestamp()
-        if thisRound > currentRoundNum:
-            log("Round number changed to {0}".format(thisRound))
-            currentRoundNum = thisRound
-            return True
+        log("Current round number is {0}".format(thisRound))
+        currentRoundNum = thisRound
     except Exception as e:
         log("Unable to refresh round number: {0}".format(e))
-    return False
 
 """
 @brief Refreshes the current round lock status
@@ -236,10 +234,8 @@ def doCallReward(idx):
         receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
         # log("Completed transaction {0}".format(receipt))
         log('Call to reward success.')
-        orchestrators[i].hasCalledReward = True
     except Exception as e:
         log("Unable to call reward: {0}".format(e))
-        orchestrators[i].hasCalledReward = False
 
 
 # Orchestrator ETH logic
@@ -370,7 +366,6 @@ class Orchestrator:
         # Round details
         self.lastRoundCheck = 0 #< Last time the Orch got it's reward round checked
         self.lastRewardRound = 0 #< Last round the Orch called reward
-        self.hasCalledReward = False #< Stops checking for rewards during the current round after it succeeds
 
 # Init orch objecs
 for obj in ORCH_TARGETS:
@@ -388,10 +383,7 @@ while True:
         else:
             log("(cached) Round status: round {0} (unlocked). Refreshing in {1:.0f} seconds...".format(currentRoundNum, WAIT_TIME_ROUND_REFRESH - (currentCheckTime - lastRoundRefresh)))
     else:
-        if refreshRound():
-            # Reset hasCalledReward flags for all O's since the latest round has changed
-            for j in range(len(orchestrators)):
-                orchestrators[j].hasCalledReward = False
+        refreshRound()
         refreshLock()
 
     # Main logic: check each added Orch
@@ -442,8 +434,8 @@ while True:
         # Lastly: check if we need to call reward
         
         # We can continue immediately if the latest round has not changed
-        if orchestrators[i].hasCalledReward:
-            log("Done for '{0}' as they have called reward this round".format(orchestrators[i].srcAddr))
+        if orchestrators[i].lastRewardRound >= currentRoundNum:
+            log("Done for '{0}' as they have already called reward this round".format(orchestrators[i].srcAddr))
             continue
 
         # Refresh Orch reward round
@@ -459,7 +451,6 @@ while True:
             refreshRewardRound(i)
             refreshStake(i)
         else:
-            orchestrators[i].hasCalledReward = True
             log("{0} has already called reward in round {1}".format(orchestrators[i].srcAddr, currentRoundNum))
 
     # Sleep 30s until next refresh 
