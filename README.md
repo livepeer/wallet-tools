@@ -26,6 +26,8 @@ Run the script: ```python3 OrchestratorSiphon/OrchestratorSiphon.py```
 
 Now enter the password to the keystore file when asked. Then enter `0` to launch the siphon. Now you can de-attach the `screen` session with:  ```<Ctrl + A>, then press <d>```
 
+> ⚠️ Although screen can in theory keep running indefinitely, if the process stops for any reason like a reboot of the system it will not come back up. So be sure to also enable Vires' [Telegram bot](https://github.com/0xVires/web3-livepeer-bot) to get notified if the node is not calling rewards.
+
 You can list `screen` sessions which are running with ```screen -ls```. To re-attach use ```screen -r orchSiphon```
 
 Now you can view the logs, enter [interactive mode](https://github.com/stronk-dev/OrchestratorSiphon?tab=readme-ov-file#interactive-mode) or exit the script as usual using `<CTRL + c>`
@@ -80,6 +82,6 @@ For the `systemd` script this means changing ExecStart to `ExecStart=/path/to/Or
 
 # Interactive mode
 
-If no password file is given or the keystore fails to decrypt, the script will ask the user to input the password to the keystore. You can also switch to interactive mode by sending a 'SIGQUIT' (`<CTRL + \>`) or 'SIGTSTP' (`<CTRL + z>`) signal to the script.
+If no password file is given, the script will ask the user to input the password to the keystore. You can also switch to interactive mode by sending a 'SIGQUIT' (`<CTRL + \>`) or 'SIGTSTP' (`<CTRL + z>`) signal to the script.
 
 Interactive mode allows you to do more stuff, like voting on proposals or setting a new service URI.
