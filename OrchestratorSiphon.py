@@ -302,6 +302,8 @@ def checkEthBalance(idx):
         ethBalance = web3.Web3.from_wei(weiBalance, 'ether')
         orchestrators[idx].ethBalance = ethBalance
         log("{0} currently has {1:.4f} ETH in their wallet".format(orchestrators[idx].srcAddr, ethBalance))
+        if ethBalance < ETH_MINVAL:
+            log("{0} should top up their ETH balance ASAP!".format(orchestrators[idx].srcAddr))
     except Exception as e:
         log("Unable to get ETH balance: '{0}'".format(e))
 
