@@ -206,7 +206,7 @@ def doTransferBond(idx):
         # Sign and initiate transaction
         signedTx = w3.eth.account.sign_transaction(tx, orchestrators[idx].srcKey)
         transactionHash = w3.eth.send_raw_transaction(signedTx.raw_transaction)
-        log("Initiated transaction with hash {0}".format(transactionHash))
+        log("Initiated transaction with hash {0}".format(transactionHash.hex()))
         # Wait for transaction to be confirmed
         receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
         # log("Completed transaction {0}".format(receipt))
@@ -229,7 +229,7 @@ def doCallReward(idx):
         # Sign and initiate transaction
         signedTx = w3.eth.account.sign_transaction(tx, orchestrators[idx].srcKey)
         transactionHash = w3.eth.send_raw_transaction(signedTx.raw_transaction)
-        log("Initiated transaction with hash {0}".format(transactionHash))
+        log("Initiated transaction with hash {0}".format(transactionHash.hex()))
         # Wait for transaction to be confirmed
         receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
         # log("Completed transaction {0}".format(receipt))
@@ -283,7 +283,7 @@ def doWithdrawFees(idx):
         # Sign and initiate transaction
         signedTx = w3.eth.account.sign_transaction(tx, orchestrators[idx].srcKey)
         transactionHash = w3.eth.send_raw_transaction(signedTx.raw_transaction)
-        log("Initiated transaction with hash {0}".format(transactionHash))
+        log("Initiated transaction with hash {0}".format(transactionHash.hex()))
         # Wait for transaction to be confirmed
         receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
         # log("Completed transaction {0}".format(receipt))
@@ -330,10 +330,11 @@ def doSendFees(idx):
         # Sign and initiate transaction
         signedTx = w3.eth.account.sign_transaction(tx, orchestrators[idx].srcKey)
         transactionHash = w3.eth.send_raw_transaction(signedTx.raw_transaction)
-        log("Initiated transaction with hash {0}".format(transactionHash))
+        log("Initiated transaction with hash {0}".format(transactionHash.hex()))
         # Wait for transaction to be confirmed
         receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
-        log("Completed transaction {0}".format(receipt))
+        # log("Completed transaction {0}".format(receipt))
+        log('Transfer ETH success.')
     except Exception as e:
         log("Unable to send ETH: '{0}'".format(e))
 
