@@ -322,7 +322,7 @@ def doSendFees(idx):
             'to': orchestrators[idx].parsedTargetAddrETH,
             'value': transfer_amount,
             "nonce": w3.eth.get_transaction_count(orchestrators[idx].parsedSrcAddr),
-            'gas': 200000,
+            'gas': 300000,
             'maxFeePerGas': 2000000000,
             'maxPriorityFeePerGas': 1000000000,
             'chainId': 42161
