@@ -34,7 +34,8 @@ ORCH_TARGETS = [
 # Optionally change these - remember to keep some ETH for reward calls, etc 
 LPT_THRESHOLD = 100     #< Amount of pending stake before triggering TransferBond
 ETH_THRESHOLD = 0.10    #< Amount of pending fees before triggering WithdrawFees
-ETH_MINVAL = 0.02       #< Amount of ETH to keep in the wallet for ticket redemptions etc
+ETH_MINVAL = 0.03       #< Amount of ETH to keep in the wallet for ticket redemptions etc
+ETH_WARN = 0.02         #< Start chucking warnings to the console once ETH balance drops below this value
 LPT_MINVAL = 1          #< Amount of LPT self-stake to leave
 L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'
 # If set to False: always WithdrawFees to the source address first
@@ -349,7 +350,7 @@ def checkEthBalance(idx):
         ethBalance = web3.Web3.from_wei(weiBalance, 'ether')
         orchestrators[idx].ethBalance = ethBalance
         log("{0} currently has {1:.4f} ETH in their wallet".format(orchestrators[idx].srcAddr, ethBalance))
-        if ethBalance < ETH_MINVAL:
+        if ethBalance < ETH_WARN:
             log("{0} should top up their ETH balance ASAP!".format(orchestrators[idx].srcAddr))
     except Exception as e:
         log("Unable to get ETH balance: '{0}'".format(e))
