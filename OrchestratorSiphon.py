@@ -271,7 +271,7 @@ def doWithdrawFees(idx):
         if not WITHDRAW_FEES_TO_RECEIVER:
             log("Withdrawing {0} WEI to {1}".format(transfer_amount, orchestrators[idx].srcAddr))
         elif orchestrators[idx].ethBalance < ETH_MINVAL:
-            log("{0} has a balance of {1:.4f} ETH. Withdrawing fees to the Orch wallet to maintain the minimum balance of {2:.4f}}".format(orchestrators[idx].srcAddr, orchestrators[idx].ethBalance, ETH_MINVAL))
+            log("{0} has a balance of {1:.4f} ETH. Withdrawing fees to the Orch wallet to maintain the minimum balance of {2:.4f}".format(orchestrators[idx].srcAddr, orchestrators[idx].ethBalance, ETH_MINVAL))
         else:
             targetAddress = orchestrators[idx].parsedTargetAddrETH
             log("Withdrawing {0} WEI directly to receiver wallet {1}".format(transfer_amount, orchestrators[idx].targetAddrETH))
