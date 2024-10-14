@@ -9,17 +9,19 @@ from datetime import datetime, timezone
 # TODO: notifications every time it transfers LPT, ETH , reward calls
 # point it to an SMTP server or Telegram bot
 
+# TODO: add config option to unbond->withdraw->transfer LPT as opposed to TransferBond
 
 ### Global Config
 
 
 # Don't change this class
 class OrchConf:
-  def __init__(self, key, pw, pub, tgt):
+  def __init__(self, key, pw, pub, ethTgt, lptTgt):
     self._srcKeyPath = key
     self._srcKeyPwPath = pw
     self._srcAddr = pub
-    self._targetAddr = tgt
+    self._targetAddrETH = ethTgt
+    self._targetAddrLPT = lptTgt
 
 # Definitely change this. You can add multiple Orchestrators and separate them with a comma
 ORCH_TARGETS = [
@@ -39,9 +41,14 @@ ORCH_TARGETS = [
 
 # Optionally change these - remember to keep some ETH for reward calls, etc 
 LPT_THRESHOLD = 100     #< Amount of pending stake before triggering TransferBond
-ETH_THRESHOLD = 0.20    #< Amount of pending fees before triggering WithdrawFees
+ETH_THRESHOLD = 0.10    #< Amount of pending fees before triggering WithdrawFees
 ETH_MINVAL = 0.02       #< Amount of ETH to keep in the wallet for ticket redemptions etc
+LPT_MINVAL = 1          #< Amount of LPT self-stake to leave
 L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'
+# If set to False: always WithdrawFees to the source address first
+# If set to True: WithdrawFees to the source address if it's below ETH_MINVAL
+#                 Otherwise withdraws to the receiver address directly
+WITHDRAW_FEES_TO_RECEIVER = True
 
 ### Wait & cache times in seconds: higher values == less RPC calls being made
 WAIT_TIME_ROUND_REFRESH = 60 * 15       #< Check for a change in round num or lock state
@@ -181,10 +188,13 @@ def refreshStake(idx):
 def doTransferBond(idx):
     global orchestrators
     try:
-        transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].pendingLPT) - 1, 'ether')
+        if LPT_MINVAL > orchestrators[idx].pendingLPT:
+            log("Cannot transfer LPT, as the minimum value to leave behind is larger than the self-stake")
+            return
+        transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].pendingLPT) - LPT_MINVAL, 'ether')
         log("Should transfer {0} LPTU".format(transfer_amount))
         # Build transaction info
-        tx = bonding_contract.functions.transferBond(orchestrators[idx].parsedTargetAddr, transfer_amount,
+        tx = bonding_contract.functions.transferBond(orchestrators[idx].parsedTargetAddrLPT, transfer_amount,
             web3.constants.ADDRESS_ZERO, web3.constants.ADDRESS_ZERO, web3.constants.ADDRESS_ZERO,
             web3.constants.ADDRESS_ZERO).build_transaction(
             {
@@ -254,12 +264,14 @@ def doWithdrawFees(idx):
     global orchestrators
     try:
         transfer_amount = web3.Web3.to_wei(float(orchestrators[idx].pendingETH) - 0.00001, 'ether')
-        targetAddress = orchestrators[idx].parsedTargetAddr
-        if orchestrators[idx].ethBalance < ETH_MINVAL:
-            targetAddress = orchestrators[idx].parsedSrcAddr
+        targetAddress = orchestrators[idx].parsedSrcAddr
+        if not WITHDRAW_FEES_TO_RECEIVER:
+            log("Withdrawing {0} WEI to {1}".format(transfer_amount, orchestrators[idx].srcAddr))
+        elif orchestrators[idx].ethBalance < ETH_MINVAL:
             log("{0} has a balance of {1:.4f} ETH. Withdrawing fees to the Orch wallet to maintain the minimum balance of {2:.4f}}".format(orchestrators[idx].srcAddr, orchestrators[idx].ethBalance, ETH_MINVAL))
         else:
-            log("Withdrawing {0} WEI directly to receiver wallet {1}".format(transfer_amount, orchestrators[idx].targetAddr))
+            targetAddress = orchestrators[idx].parsedTargetAddrETH
+            log("Withdrawing {0} WEI directly to receiver wallet {1}".format(transfer_amount, orchestrators[idx].targetAddrETH))
         # Build transaction info
         tx = bonding_contract.functions.withdrawFees(targetAddress, transfer_amount).build_transaction(
             {
@@ -306,7 +318,7 @@ def doSendFees(idx):
         # Build transaction info
         tx = {
             'from': orchestrators[idx].parsedSrcAddr,
-            'to': orchestrators[idx].parsedTargetAddr,
+            'to': orchestrators[idx].parsedTargetAddrETH,
             'value': transfer_amount,
             "nonce": w3.eth.get_transaction_count(orchestrators[idx].parsedSrcAddr),
             'gas': 200000,
@@ -337,8 +349,11 @@ class Orchestrator:
                 keyPw = pwfile.read()
                 self.srcKey = w3.eth.account.decrypt(encrypted_key, keyPw.rstrip('\n'))
         self.parsedSrcAddr = getChecksumAddr(obj._srcAddr)
-        self.targetAddr = obj._targetAddr
-        self.parsedTargetAddr = getChecksumAddr(obj._targetAddr)
+        # Set target adresses
+        self.targetAddrETH = obj._targetAddrETH
+        self.parsedTargetAddrETH = getChecksumAddr(obj._targetAddrETH)
+        self.targetAddrLPT = obj._targetAddrLPT
+        self.parsedTargetAddrLPT = getChecksumAddr(obj._targetAddrLPT)
         # LPT details
         self.lastLptCheck = 0 #< Last time the Orch got it's pendingStake checked
         self.pendingLPT = 0 #< Current pending stake of the Orch
@@ -414,7 +429,7 @@ while True:
         if orchestrators[i].ethBalance < ETH_THRESHOLD:
             log("{0} has {1:.4f} ETH in their wallet < threshold of {2:.4f} ETH".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD))
         else:
-            log("{0} has {1:.4f} in ETH pending fees > threshold of {2:.4f} ETH, sending some to {3}...".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD, orchestrators[i].targetAddr))
+            log("{0} has {1:.4f} in ETH pending fees > threshold of {2:.4f} ETH, sending some to {3}...".format(orchestrators[i].srcAddr, orchestrators[i].ethBalance, ETH_THRESHOLD, orchestrators[i].targetAddrETH))
             doSendFees(i)
             checkEthBalance(i)
 
