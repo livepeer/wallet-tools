@@ -63,3 +63,9 @@ bin/pip install eth-utils
 Don't forget to use the python binary from the virtual environment when running the script: ```bin/python3 OrchestratorSiphon.py```
 
 For the `systemd` script this means changing ExecStart to `ExecStart=/path/to/OrchestratorSiphon/bin/python3 -u /path/to/OrchestratorSiphon/OrchestratorSiphon.py`
+
+## Interactive mode
+
+If no password file is given, the script will ask the user to input the password to the keystore. You can also switch to interactive mode by sending a 'SIGQUIT' (`CTRL + \`) or 'SIGTSTP' (`CTRL + z`) signal to the script.
+
+Interactive mode allows you to do more stuff, like voting on proposals or setting a new service URI.

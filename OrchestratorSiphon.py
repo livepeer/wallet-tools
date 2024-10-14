@@ -4,13 +4,9 @@ import json
 import time
 import sys
 from datetime import datetime, timezone
-
-# TODO: notifications every time it transfers LPT, ETH , reward calls
-# point it to an SMTP server or Telegram bot
-
-# TODO: add config option to unbond->withdraw->transfer LPT as opposed to TransferBond
-
-# TODO: for tranferring bond: instead of waiting for a round lock, wait for the Delegators' orch to have called reward
+import os
+import signal
+from getpass import getpass
 
 ### Global Config
 
@@ -27,19 +23,13 @@ class OrchConf:
 # Definitely change this. You can add multiple Orchestrators and separate them with a comma
 ORCH_TARGETS = [
     OrchConf(
-        'path to livepeer keystore file',
-        'path to file with keystore password',
-        'orch public address, ie: 0x847791cbf03be716a7fe9dc8c9affe17bd49ae5e',
+        'Path to livepeer keystore file',
+        'keystore password or path to a file containing your keystore password. If left empty, will ask to input the password',
+        'Orch public address, ie: 0x847791cbf03be716a7fe9dc8c9affe17bd49ae5e',
         'ETH receiver public address, ie: 0x13c4299Cc484C9ee85c7315c18860d6C377c03bf',
         'LPT receiver public address, ie: 0x13c4299Cc484C9ee85c7315c18860d6C377c03bf'
     )
 ]
-
-# Fill in these to get Telegram notifications
-# TODO
-
-# Fill in these to get E-mail notifications
-# TODO
 
 # Optionally change these - remember to keep some ETH for reward calls, etc 
 LPT_THRESHOLD = 100     #< Amount of pending stake before triggering TransferBond
@@ -69,7 +59,7 @@ currentRoundNum = 0
 currentRoundLocked = False
 currentCheckTime = 0
 orchestrators = []
-
+requiresUserInput = False
 
 ### Utils
 
@@ -78,6 +68,23 @@ orchestrators = []
 def log(info):
     print("[", datetime.now(), "] - ", info)
     sys.stdout.flush()
+
+"""
+@brief Catches signals
+"""
+def sigHandler(num, _):
+    global requiresUserInput
+    log("Received signal: {0}".format(sigmap.get(num, '<other>')))
+    if num == signal.SIGINT:
+        sys.exit(1)
+    log("Will switch to interactive mode...")
+    requiresUserInput = True
+# Used for catching signals
+signames = ['SIGINT','SIGQUIT','SIGTSTP']
+sigmap = dict((getattr(signal, k), k) for k in signames)
+# Check if we got a signal to exit or switch to interactive mode
+for name in signames:
+    signal.signal(getattr(signal, name), sigHandler)
 
 """
 @brief Returns a JSON object of ABI data
@@ -89,7 +96,7 @@ def getABI(path):
             info_json = json.load(f)
             return info_json["abi"]
     except Exception as e:
-        log("Unable to extract ABI data: {0}".format(e))
+        log("Fatal error: Unable to extract ABI data: {0}".format(e))
         exit(1)
 
 """
@@ -101,7 +108,7 @@ def getChecksumAddr(wallet):
         parsed_wallet = web3.Web3.to_checksum_address(wallet.lower())
         return parsed_wallet
     except Exception as e:
-        log("Unable to parse wallet address: {0}".format(e))
+        log("Fatal error: Unable to parse wallet address: {0}".format(e))
         exit(1)
 
 """
@@ -127,6 +134,22 @@ def clearPassword(filePath):
     except Exception as e:
         log("WARNING: was not able to overwrite the password file: {0}".format(e))
 
+
+def getPrivateKey(keystorePath, passwordPath):
+    if passwordPath == "":
+        return ""
+    try:
+        with open(keystorePath) as keyfile:
+            encrypted_key = keyfile.read()
+            if checkPath(passwordPath):
+                with open(passwordPath) as pwfile:
+                    keyPw = pwfile.read()
+                    return w3.eth.account.decrypt(encrypted_key, keyPw.rstrip('\n'))
+            else:
+                return w3.eth.account.decrypt(encrypted_key, passwordPath)
+    except Exception as e:
+        log("Unable to decrypt key: {0}".format(e))
+        return ""
 
 ### Define contracts
 
@@ -366,49 +389,75 @@ def doSendFees(idx):
         log("Unable to send ETH: {0}".format(e))
 
 
-class Orchestrator:
-    def __init__(self, obj):
-        # Orch details
-        self.srcAddr = obj._srcAddr
-        # Get private key
-        try: 
-            with open(obj._srcKeyPath) as keyfile:
-                encrypted_key = keyfile.read()
-                with open(obj._srcKeyPwPath) as pwfile:
-                    keyPw = pwfile.read()
-                    self.srcKey = w3.eth.account.decrypt(encrypted_key, keyPw.rstrip('\n'))
-        except Exception as e:
-            log("Unable to decrypt key: {0}".format(e))
-            exit(1)
-        # Immediately clear the text file containing the password
-        if CLEAR_PASSWORD_AFTER_BOOT:
-            clearPassword(obj._srcKeyPwPath)
-        self.parsedSrcAddr = getChecksumAddr(obj._srcAddr)
-        # Set target adresses
-        self.targetAddrETH = obj._targetAddrETH
-        self.parsedTargetAddrETH = getChecksumAddr(obj._targetAddrETH)
-        self.targetAddrLPT = obj._targetAddrLPT
-        self.parsedTargetAddrLPT = getChecksumAddr(obj._targetAddrLPT)
-        # LPT details
-        self.lastLptCheck = 0 #< Last time the Orch got it's pendingStake checked
-        self.pendingLPT = 0 #< Current pending stake of the Orch
-        # ETH details
-        self.lastEthCheck = 0 #< Last time the Orch got it's pendingFees and ETH balance checked
-        self.pendingETH = 0 #< Current pending fees of the Orch
-        self.ethBalance = 0 #< Current ETH balance of the Orch
-        # Round details
-        self.lastRoundCheck = 0 #< Last time the Orch got it's reward round checked
-        self.lastRewardRound = 0 #< Last round the Orch called reward
+### User input handling
 
-# Init orch objecs
-for obj in ORCH_TARGETS:
-    log("Adding Orchestrator '{0}'".format(obj._srcAddr))
-    orchestrators.append(Orchestrator(obj))
+"""
+@brief Print all user choices
+"""
+def printOptions():
+    options = [
+        "1. TBA",
+        "0. Start siphoning. Press `CTRL + z`or `CTRL + \\` if you want to switch back to interactive mode"
+    ]
+    print("\nPlease choose an option:")
+    for option in options:
+        print(option)
+    print()
+    
+"""
+@brief Handler for user choices
+"""
+def parseOption(choice):
+    print("chose {0}".format(choice))
+    pass
 
-# Main loop
-while True:
-    currentCheckTime = datetime.now(timezone.utc).timestamp()
+"""
+@brief Asks the user to give us a number
+@return -1 on failure, else an integer
+"""
+def getInputAsInt():
+    choice = input("Enter a number (choose 0 to proceed): ")
+    
+    try:
+        choice = int(choice)
+    except ValueError:
+        print("Invalid input. Please enter a valid number.\n")
+        choice = -1
+    return choice
 
+"""
+@brief Asks the user for keystore passwords or choose from an option menu
+"""
+def handleUserInput():
+    global orchestrators
+    global requiresUserInput
+    # For each Orch with no srcKey, decrypt
+    for i in range(len(orchestrators)):
+        while orchestrators[i].srcKey == "":
+            orchestrators[i].srcKey = getPrivateKey(orchestrators[i].srcKeypath, getpass("Enter the password for {0}: ".format(orchestrators[i].srcAddr)))
+    # Else continue to menu
+    while True:
+        printOptions()
+        choice = getInputAsInt()
+
+        if choice == 0:
+            print("Siphoning... 💸")
+            requiresUserInput = False
+            break
+        else:
+            parseOption(choice)
+    
+
+
+### Main logic
+
+
+"""
+@brief Checks all Orchestrators if any cached data needs refreshing or contracts need calling
+"""
+def refreshState():
+    if requiresUserInput:
+        return
     # Check for round updates
     if currentCheckTime < lastRoundRefresh + WAIT_TIME_ROUND_REFRESH:
         if currentRoundLocked:
@@ -486,13 +535,63 @@ while True:
         else:
             log("{0} has already called reward in round {1}".format(orchestrators[i].srcAddr, currentRoundNum))
 
-    # Sleep 30s until next refresh 
-    delay = WAIT_TIME_IDLE
-    while delay > 0:
-        log("Sleeping for " + str(delay) + " more seconds...")
-        if (delay > 30):
-            delay = delay - 30
-            time.sleep(30)
-        else:
-            time.sleep(delay)
-            delay = 0
+class Orchestrator:
+    def __init__(self, obj):
+        # Orch details
+        self.srcAddr = obj._srcAddr
+        self.srcKeypath = obj._srcKeyPath
+        self.srcKeyPwPath = obj._srcKeyPwPath
+        # Get private key
+        self.srcKey = getPrivateKey(obj._srcKeyPath, obj._srcKeyPwPath)
+        # Immediately clear the text file containing the password
+        if CLEAR_PASSWORD_AFTER_BOOT:
+            clearPassword(obj._srcKeyPwPath)
+        self.parsedSrcAddr = getChecksumAddr(obj._srcAddr)
+        # Set target adresses
+        self.targetAddrETH = obj._targetAddrETH
+        self.parsedTargetAddrETH = getChecksumAddr(obj._targetAddrETH)
+        self.targetAddrLPT = obj._targetAddrLPT
+        self.parsedTargetAddrLPT = getChecksumAddr(obj._targetAddrLPT)
+        # LPT details
+        self.lastLptCheck = 0 #< Last time the Orch got it's pendingStake checked
+        self.pendingLPT = 0 #< Current pending stake of the Orch
+        # ETH details
+        self.lastEthCheck = 0 #< Last time the Orch got it's pendingFees and ETH balance checked
+        self.pendingETH = 0 #< Current pending fees of the Orch
+        self.ethBalance = 0 #< Current ETH balance of the Orch
+        # Round details
+        self.lastRoundCheck = 0 #< Last time the Orch got it's reward round checked
+        self.lastRewardRound = 0 #< Last round the Orch called reward
+
+# Init orch objecs
+for obj in ORCH_TARGETS:
+    log("Adding Orchestrator '{0}'".format(obj._srcAddr))
+    orchestrators.append(Orchestrator(obj))
+
+# Check if we have all keystores unlocked. Else we need to switch to interative mode
+for orch in orchestrators:
+    # Assume everything is fine
+    requiresUserInput = False
+    if orch.srcKey == "":
+        requiresUserInput = True
+
+# Main loop
+while True:
+    currentCheckTime = datetime.now(timezone.utc).timestamp()
+    if requiresUserInput:
+        handleUserInput()
+    else:
+        # Main logic of refreshing cached variables and calling contract functions
+        refreshState()
+        # Sleep 30s until next refresh 
+        delay = WAIT_TIME_IDLE
+        while delay > 0:
+            if requiresUserInput:
+                break
+            log("Sleeping for 10 seconds ({0} idle time left)".format(delay))
+            if (delay > 10):
+                delay = delay - 10
+                time.sleep(10)
+            else:
+                time.sleep(delay)
+                delay = 0
