@@ -105,10 +105,21 @@ def getChecksumAddr(wallet):
         exit(1)
 
 """
+@brief Checks if a string is a valid filepath
+@param boolean: True if a valid file, else False
+"""
+def checkPath(filePath):
+    if not isinstance(filePath, str):
+        return False
+    return os.path.isfile(filePath)
+
+"""
 @brief Overwrites the password file with garbage
 @param filepath: absolute/relative path to a text file
 """
 def clearPassword(filePath):
+    if not checkPath(filePath):
+        return
     try:
         with open(filePath, 'w') as file:
             pass
