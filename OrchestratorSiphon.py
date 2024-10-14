@@ -51,6 +51,9 @@ L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'
 # If set to True: WithdrawFees to the source address if it's below ETH_MINVAL
 #                 Otherwise withdraws to the receiver address directly
 WITHDRAW_FEES_TO_RECEIVER = True
+# If set to False: keeps the text file with the keystore password intact
+# If set to True: clears the text file with the keystore password after decrypting the key
+CLEAR_PASSWORD_AFTER_BOOT = False
 
 ### Wait & cache times in seconds: higher values == less RPC calls being made
 WAIT_TIME_ROUND_REFRESH = 60 * 15       #< Check for a change in round num or lock state
@@ -100,6 +103,18 @@ def getChecksumAddr(wallet):
     except Exception as e:
         log("Unable to parse wallet address: {0}".format(e))
         exit(1)
+
+"""
+@brief Overwrites the password file with garbage
+@param filepath: absolute/relative path to a text file
+"""
+def clearPassword(filePath):
+    try:
+        with open(filePath, 'w') as file:
+            pass
+        log('Clear password file success.')
+    except Exception as e:
+        log("WARNING: was not able to overwrite the password file: {0}".format(e))
 
 
 ### Define contracts
@@ -337,7 +352,7 @@ def doSendFees(idx):
         # log("Completed transaction {0}".format(receipt))
         log('Transfer ETH success.')
     except Exception as e:
-        log("Unable to send ETH: '{0}'".format(e))
+        log("Unable to send ETH: {0}".format(e))
 
 
 class Orchestrator:
@@ -345,11 +360,18 @@ class Orchestrator:
         # Orch details
         self.srcAddr = obj._srcAddr
         # Get private key
-        with open(obj._srcKeyPath) as keyfile:
-            encrypted_key = keyfile.read()
-            with open(obj._srcKeyPwPath) as pwfile:
-                keyPw = pwfile.read()
-                self.srcKey = w3.eth.account.decrypt(encrypted_key, keyPw.rstrip('\n'))
+        try: 
+            with open(obj._srcKeyPath) as keyfile:
+                encrypted_key = keyfile.read()
+                with open(obj._srcKeyPwPath) as pwfile:
+                    keyPw = pwfile.read()
+                    self.srcKey = w3.eth.account.decrypt(encrypted_key, keyPw.rstrip('\n'))
+        except Exception as e:
+            log("Unable to decrypt key: {0}".format(e))
+            exit(1)
+        # Immediately clear the text file containing the password
+        if CLEAR_PASSWORD_AFTER_BOOT:
+            clearPassword(obj._srcKeyPwPath)
         self.parsedSrcAddr = getChecksumAddr(obj._srcAddr)
         # Set target adresses
         self.targetAddrETH = obj._targetAddrETH
