@@ -200,7 +200,8 @@ def doTransferBond(idx):
             web3.constants.ADDRESS_ZERO).build_transaction(
             {
                 "from": orchestrators[idx].parsedSrcAddr,
-                "gasPrice": 1000000000,
+                'maxFeePerGas': 2000000000,
+                'maxPriorityFeePerGas': 1000000000,
                 "nonce": w3.eth.get_transaction_count(orchestrators[idx].parsedSrcAddr)
             }
         )
@@ -223,7 +224,8 @@ def doCallReward(idx):
         tx = bonding_contract.functions.reward().build_transaction(
             {
                 "from": orchestrators[idx].parsedSrcAddr,
-                "gasPrice": 1000000000,
+                'maxFeePerGas': 2000000000,
+                'maxPriorityFeePerGas': 1000000000,
                 "nonce": w3.eth.get_transaction_count(orchestrators[idx].parsedSrcAddr)
             }
         )
@@ -277,7 +279,8 @@ def doWithdrawFees(idx):
         tx = bonding_contract.functions.withdrawFees(targetAddress, transfer_amount).build_transaction(
             {
                 "from": orchestrators[idx].parsedSrcAddr,
-                "gasPrice": 1000000000,
+                'maxFeePerGas': 2000000000,
+                'maxPriorityFeePerGas': 1000000000,
                 "nonce": w3.eth.get_transaction_count(orchestrators[idx].parsedSrcAddr)
             }
         )
