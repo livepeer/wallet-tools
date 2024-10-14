@@ -407,6 +407,7 @@ while True:
         else:
             log("{0} has {1:.4f} in ETH pending fees > threshold of {2:.4f} ETH, withdrawing fees...".format(orchestrators[i].srcAddr, orchestrators[i].pendingETH, ETH_THRESHOLD))
             doWithdrawFees(i)
+            refreshFees(i)
             checkEthBalance(i)
 
         # Transfer ETH to receiver if threshold is reached
