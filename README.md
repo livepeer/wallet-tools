@@ -17,6 +17,20 @@ Run the script manually to test if it works:
 python3 OrchestratorSiphon/OrchestratorSiphon.py
 ```
 
+## Run in screen
+If you don't want to store the password to your keystore next tot the keystore file itself, the recommend way to running the script is something like `screen`. This allows you to set the password field empty in the config, type in the password when the script asks for it and then detach the terminal so it keeps running in the background.
+
+Start a new `screen` session: ```screen -S orchSiphon```
+
+Run the script: ```python3 OrchestratorSiphon/OrchestratorSiphon.py```
+
+Now enter the password to the keystore file when asked. Then enter `0` to launch the siphon. Now you can de-attach the `screen` session with:  ```<Ctrl + A>, then press <d>```
+
+You can list `screen` sessions which are running with ```screen -ls```. To re-attach use ```screen -r orchSiphon```
+
+Now you can view the logs, enter [interactive mode](https://github.com/stronk-dev/OrchestratorSiphon?tab=readme-ov-file#interactive-mode) or exit the script as usual using `<CTRL + c>`
+
+## Systemd script
 Example systemd script (modify paths):
 ```sudo nano /etc/systemd/system/orchSiphon.service```
 
@@ -64,8 +78,8 @@ Don't forget to use the python binary from the virtual environment when running 
 
 For the `systemd` script this means changing ExecStart to `ExecStart=/path/to/OrchestratorSiphon/bin/python3 -u /path/to/OrchestratorSiphon/OrchestratorSiphon.py`
 
-## Interactive mode
+# Interactive mode
 
-If no password file is given, the script will ask the user to input the password to the keystore. You can also switch to interactive mode by sending a 'SIGQUIT' (`CTRL + \`) or 'SIGTSTP' (`CTRL + z`) signal to the script.
+If no password file is given or the keystore fails to decrypt, the script will ask the user to input the password to the keystore. You can also switch to interactive mode by sending a 'SIGQUIT' (`<CTRL + \>`) or 'SIGTSTP' (`<CTRL + z>`) signal to the script.
 
 Interactive mode allows you to do more stuff, like voting on proposals or setting a new service URI.
