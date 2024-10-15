@@ -10,6 +10,7 @@ from lib import Util, Contract, User, State
 
 ### Immediately start signal listeners - these are used to switch to interactive mode
 
+
 """
 @brief Catches signals
 """

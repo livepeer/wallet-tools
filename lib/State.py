@@ -5,6 +5,7 @@ import os #< Used to get environment variables
 import sys #< To exit the program
 import json #< Parse JSON ABI file
 
+
 ### Config & Variables
 
 
@@ -97,8 +98,8 @@ def getABI(path):
         print("Fatal error: Unable to extract ABI data: {0}".format(e))
         sys.exit(1)
 
-abi_bonding_manager = getABI("./BondingManagerTarget.json")
-abi_rounds_manager = getABI("./RoundsManagerTarget.json")
+abi_bonding_manager = getABI("./contracs/BondingManagerTarget.json")
+abi_rounds_manager = getABI("./contracs//RoundsManagerTarget.json")
 # connect to L2 rpc provider
 provider = web3.HTTPProvider(L2_RPC_PROVIDER)
 w3 = web3.Web3(provider)
