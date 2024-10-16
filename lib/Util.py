@@ -41,9 +41,11 @@ def checkPath(file_path):
 @param file_path: absolute/relative path to a text file
 """
 def clearPassword(file_path):
+    # Make sure the path point to a valid file
     if not checkPath(file_path):
         return
     try:
+        # Open the file in write mode, which empties it
         with open(file_path, 'w') as file:
             pass
         log('Clear password file success.')

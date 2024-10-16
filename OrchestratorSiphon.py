@@ -11,12 +11,16 @@ from lib import Util, Contract, User, State
 ### Immediately start signal listeners - these are used to switch to interactive mode
 
 
+# The signals we're listening for
+signal_names = ['SIGINT','SIGQUIT','SIGTSTP']
+# Lookup table so we can translate back to a name for printing
+signal_map = dict((getattr(signal, k), k) for k in signal_names)
+
 """
 @brief Catches signals
+@param num: Number corresponding to the signal name
+@param _: ignored, but required when attaching the signal handler
 """
-# Used for catching signals
-signal_names = ['SIGINT','SIGQUIT','SIGTSTP']
-signal_map = dict((getattr(signal, k), k) for k in signal_names)
 def sigHandler(num, _):
     Util.log("Received signal: {0}".format(signal_map.get(num, '<other>')))
     if num == signal.SIGINT:
