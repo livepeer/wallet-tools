@@ -28,8 +28,8 @@ def getABI(path):
         print("Fatal error: Unable to extract ABI data: {0}".format(e))
         sys.exit(1)
 
-abi_bonding_manager = getABI("./contracs/BondingManagerTarget.json")
-abi_rounds_manager = getABI("./contracs//RoundsManagerTarget.json")
+abi_bonding_manager = getABI("./contracts/BondingManagerTarget.json")
+abi_rounds_manager = getABI("./contracts/RoundsManagerTarget.json")
 # connect to L2 rpc provider
 provider = web3.HTTPProvider(State.L2_RPC_PROVIDER)
 w3 = web3.Web3(provider)
