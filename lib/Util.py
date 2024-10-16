@@ -5,7 +5,7 @@ import sys #< Used to flush STDOUT or exit
 import os #< Check if a filepath is valid
 import web3 #< Handling wallet addresses
 # Import our own libraries
-from lib import State
+from lib import Contract
 
 """
 @brief Logs `info` to the terminal with an attached datetime
@@ -62,9 +62,9 @@ def getPrivateKey(keystore_path, password):
             if checkPath(password):
                 with open(password) as password_file:
                     key_password = password_file.read()
-                    return State.w3.eth.account.decrypt(encrypted_key, key_password.rstrip('\n'))
+                    return Contract.w3.eth.account.decrypt(encrypted_key, key_password.rstrip('\n'))
             else:
-                return State.w3.eth.account.decrypt(encrypted_key, password)
+                return Contract.w3.eth.account.decrypt(encrypted_key, password)
     except Exception as e:
         log("Unable to decrypt key: {0}".format(e))
         return ""

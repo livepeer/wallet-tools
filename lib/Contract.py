@@ -1,8 +1,42 @@
 # Any functions which requires reading/writing smart contracts gets dumped here
+# Also connects to the RPC provider and holds accessors to the smart contracts
 from datetime import datetime, timezone #< In order to update the timer for cached variables
 import web3 #< Currency conversions
+import sys #< To exit the program
+import json #< Parse JSON ABI file
 # Import our own libraries
 from lib import Util, State
+
+
+BONDING_CONTRACT_ADDR = '0x35Bcf3c30594191d53231E4FF333E8A770453e40'
+ROUNDS_CONTRACT_ADDR = '0xdd6f56DcC28D3F5f27084381fE8Df634985cc39f'
+
+
+### Define contracts
+
+
+"""
+@brief Returns a JSON object of ABI data
+@param path: absolute/relative path to an ABI file
+"""
+def getABI(path):
+    try:
+        with open(path) as f:
+            info_json = json.load(f)
+            return info_json["abi"]
+    except Exception as e:
+        print("Fatal error: Unable to extract ABI data: {0}".format(e))
+        sys.exit(1)
+
+abi_bonding_manager = getABI("./contracs/BondingManagerTarget.json")
+abi_rounds_manager = getABI("./contracs//RoundsManagerTarget.json")
+# connect to L2 rpc provider
+provider = web3.HTTPProvider(State.L2_RPC_PROVIDER)
+w3 = web3.Web3(provider)
+assert w3.is_connected()
+# prepare contracts
+bonding_contract = w3.eth.contract(address=BONDING_CONTRACT_ADDR, abi=abi_bonding_manager)
+rounds_contract = w3.eth.contract(address=ROUNDS_CONTRACT_ADDR, abi=abi_rounds_manager)
 
 
 ### Round refresh logic
@@ -13,7 +47,7 @@ from lib import Util, State
 """
 def refreshRound():
     try:
-        this_round = State.rounds_contract.functions.currentRound().call()
+        this_round = rounds_contract.functions.currentRound().call()
         State.previous_round_refresh = datetime.now(timezone.utc).timestamp()
         Util.log("Current round number is {0}".format(this_round))
         State.current_round_num = this_round
@@ -25,7 +59,7 @@ def refreshRound():
 """
 def refreshLock():
     try:
-        new_lock = State.rounds_contract.functions.currentRoundLocked().call()
+        new_lock = rounds_contract.functions.currentRoundLocked().call()
         State.current_round_is_locked = new_lock
     except Exception as e:
         Util.log("Unable to refresh round lock status: {0}".format(e))
@@ -40,7 +74,7 @@ def refreshRewardRound(idx):
         #                              lastActiveStakeUpdateRound, activationRound, deactivationRound,
         #                              activeCumulativeRewards, cumulativeRewards, cumulativeFees,
         #                              lastFeeRound]
-        orchestrator_info = State.bonding_contract.functions.getTranscoder(State.orchestrators[idx].source_checksum_address).call()
+        orchestrator_info = bonding_contract.functions.getTranscoder(State.orchestrators[idx].source_checksum_address).call()
         State.orchestrators[idx].previous_reward_round = orchestrator_info[0]
         State.orchestrators[idx].previous_round_refresh = datetime.now(timezone.utc).timestamp()
         Util.log("Latest reward round for {0} is {1}".format(State.orchestrators[idx].source_address, State.orchestrators[idx].previous_reward_round))
@@ -57,7 +91,7 @@ def refreshRewardRound(idx):
 """
 def refreshStake(idx):
     try:
-        pending_lptu = State.bonding_contract.functions.pendingStake(State.orchestrators[idx].source_checksum_address, 99999).call()
+        pending_lptu = bonding_contract.functions.pendingStake(State.orchestrators[idx].source_checksum_address, 99999).call()
         pending_lpt = web3.Web3.from_wei(pending_lptu, 'ether')
         State.orchestrators[idx].balance_LPT_pending = pending_lpt
         State.orchestrators[idx].previous_LPT_refresh = datetime.now(timezone.utc).timestamp()
@@ -74,22 +108,22 @@ def doTransferBond(idx):
         transfer_amount = web3.Web3.to_wei(float(State.orchestrators[idx].balance_LPT_pending) - State.LPT_MINVAL, 'ether')
         Util.log("Going to transfer {0} LPTU bond to {1}".format(transfer_amount, State.orchestrators[idx].receiver_address_LPT))
         # Build transaction info
-        transaction_obj = State.bonding_contract.functions.transferBond(State.orchestrators[idx].receiver_checksum_address_LPT, transfer_amount,
+        transaction_obj = bonding_contract.functions.transferBond(State.orchestrators[idx].receiver_checksum_address_LPT, transfer_amount,
             web3.constants.ADDRESS_ZERO, web3.constants.ADDRESS_ZERO, web3.constants.ADDRESS_ZERO,
             web3.constants.ADDRESS_ZERO).build_transaction(
             {
                 "from": State.orchestrators[idx].source_checksum_address,
                 'maxFeePerGas': 2000000000,
                 'maxPriorityFeePerGas': 1000000000,
-                "nonce": State.w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address)
+                "nonce": w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address)
             }
         )
         # Sign and initiate transaction
-        signed_transaction = State.w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
-        transaction_hash = State.w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
+        signed_transaction = w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
+        transaction_hash = w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
         Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()))
         # Wait for transaction to be confirmed
-        receipt = State.w3.eth.wait_for_transaction_receipt(transaction_hash)
+        receipt = w3.eth.wait_for_transaction_receipt(transaction_hash)
         # Util.log("Completed transaction {0}".format(receipt))
         Util.log('Transfer bond success.')
     except Exception as e:
@@ -103,20 +137,20 @@ def doCallReward(idx):
     try:
         Util.log("Calling reward for {0}".format(State.orchestrators[idx].source_address))
         # Build transaction info
-        transaction_obj = State.bonding_contract.functions.reward().build_transaction(
+        transaction_obj = bonding_contract.functions.reward().build_transaction(
             {
                 "from": State.orchestrators[idx].source_checksum_address,
                 'maxFeePerGas': 2000000000,
                 'maxPriorityFeePerGas': 1000000000,
-                "nonce": State.w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address)
+                "nonce": w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address)
             }
         )
         # Sign and initiate transaction
-        signed_transaction = State.w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
-        transaction_hash = State.w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
+        signed_transaction = w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
+        transaction_hash = w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
         Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()))
         # Wait for transaction to be confirmed
-        receipt = State.w3.eth.wait_for_transaction_receipt(transaction_hash)
+        receipt = w3.eth.wait_for_transaction_receipt(transaction_hash)
         # Util.log("Completed transaction {0}".format(receipt))
         Util.log('Call to reward success.')
     except Exception as e:
@@ -132,7 +166,7 @@ def doCallReward(idx):
 """
 def refreshFees(idx):
     try:
-        pending_wei = State.bonding_contract.functions.pendingFees(State.orchestrators[idx].source_checksum_address, 99999).call()
+        pending_wei = bonding_contract.functions.pendingFees(State.orchestrators[idx].source_checksum_address, 99999).call()
         pending_eth = web3.Web3.from_wei(pending_wei, 'ether')
         State.orchestrators[idx].balance_ETH_pending = pending_eth
         State.orchestrators[idx].previous_ETH_refresh = datetime.now(timezone.utc).timestamp()
@@ -157,20 +191,20 @@ def doWithdrawFees(idx):
             receiver_address = State.orchestrators[idx].target_checksum_address_ETH
             Util.log("Withdrawing {0} WEI directly to receiver wallet {1}".format(transfer_amount, State.orchestrators[idx].target_address_ETH))
         # Build transaction info
-        transaction_obj = State.bonding_contract.functions.withdrawFees(receiver_address, transfer_amount).build_transaction(
+        transaction_obj = bonding_contract.functions.withdrawFees(receiver_address, transfer_amount).build_transaction(
             {
                 "from": State.orchestrators[idx].source_checksum_address,
                 'maxFeePerGas': 2000000000,
                 'maxPriorityFeePerGas': 1000000000,
-                "nonce": State.w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address)
+                "nonce": w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address)
             }
         )
         # Sign and initiate transaction
-        signed_transaction = State.w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
-        transaction_hash = State.w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
+        signed_transaction = w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
+        transaction_hash = w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
         Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()))
         # Wait for transaction to be confirmed
-        receipt = State.w3.eth.wait_for_transaction_receipt(transaction_hash)
+        receipt = w3.eth.wait_for_transaction_receipt(transaction_hash)
         # Util.log("Completed transaction {0}".format(receipt))
         Util.log('Withdraw fees success.')
     except Exception as e:
@@ -182,7 +216,7 @@ def doWithdrawFees(idx):
 """
 def checkEthBalance(idx):
     try:
-        balance_wei = State.w3.eth.get_balance(State.orchestrators[idx].source_checksum_address)
+        balance_wei = w3.eth.get_balance(State.orchestrators[idx].source_checksum_address)
         balance_ETH = web3.Web3.from_wei(balance_wei, 'ether')
         State.orchestrators[idx].balance_ETH = balance_ETH
         Util.log("{0} currently has {1:.4f} ETH in their wallet".format(State.orchestrators[idx].source_address, balance_ETH))
@@ -204,7 +238,7 @@ def doSendFees(idx):
             'from': State.orchestrators[idx].source_checksum_address,
             'to': State.orchestrators[idx].target_checksum_address_ETH,
             'value': transfer_amount,
-            "nonce": State.w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address),
+            "nonce": w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address),
             'gas': 300000,
             'maxFeePerGas': 2000000000,
             'maxPriorityFeePerGas': 1000000000,
@@ -212,11 +246,11 @@ def doSendFees(idx):
         }
 
         # Sign and initiate transaction
-        signed_transaction = State.w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
-        transaction_hash = State.w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
+        signed_transaction = w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
+        transaction_hash = w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
         Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()))
         # Wait for transaction to be confirmed
-        receipt = State.w3.eth.wait_for_transaction_receipt(transaction_hash)
+        receipt = w3.eth.wait_for_transaction_receipt(transaction_hash)
         # Util.log("Completed transaction {0}".format(receipt))
         Util.log('Transfer ETH success.')
     except Exception as e:

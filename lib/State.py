@@ -1,9 +1,7 @@
 # All classes and variables we want to share across files
-import web3 #< Everything related to the keystore & smart contracts
+# Also parses the config on initialisation
 import configparser #< Parse the .ini file
 import os #< Used to get environment variables
-import sys #< To exit the program
-import json #< Parse JSON ABI file
 
 
 ### Config & Variables
@@ -71,41 +69,10 @@ WAIT_TIME_IDLE = float(os.getenv('SIPHNO_WAIT_IDLE', config['timers']['wait_idle
 # RPC
 L2_RPC_PROVIDER = os.getenv('SIPHON_RPC_L2', config['rpc']['l2'])
 
-# Internal globals - Probably don't touch these
-BONDING_CONTRACT_ADDR = '0x35Bcf3c30594191d53231E4FF333E8A770453e40'
-ROUNDS_CONTRACT_ADDR = '0xdd6f56DcC28D3F5f27084381fE8Df634985cc39f'
+# Internal globals
 previous_round_refresh = 0
 current_round_num = 0
 current_round_is_locked = False
 current_time = 0
 orchestrators = []
 require_user_input = False
-
-
-### Define contracts
-
-
-"""
-@brief Returns a JSON object of ABI data
-@param path: absolute/relative path to an ABI file
-"""
-def getABI(path):
-    try:
-        with open(path) as f:
-            info_json = json.load(f)
-            return info_json["abi"]
-    except Exception as e:
-        print("Fatal error: Unable to extract ABI data: {0}".format(e))
-        sys.exit(1)
-
-abi_bonding_manager = getABI("./contracs/BondingManagerTarget.json")
-abi_rounds_manager = getABI("./contracs//RoundsManagerTarget.json")
-# connect to L2 rpc provider
-provider = web3.HTTPProvider(L2_RPC_PROVIDER)
-w3 = web3.Web3(provider)
-assert w3.is_connected()
-# prepare contracts
-bonding_contract = w3.eth.contract(address=BONDING_CONTRACT_ADDR, abi=abi_bonding_manager)
-rounds_contract = w3.eth.contract(address=ROUNDS_CONTRACT_ADDR, abi=abi_rounds_manager)
-
-
