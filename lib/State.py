@@ -78,6 +78,9 @@ WAIT_TIME_ETH_REFRESH = float(os.getenv('SIPHNO_CACHE_ETH', config['timers']['ca
 WAIT_TIME_IDLE = float(os.getenv('SIPHNO_WAIT_IDLE', config['timers']['wait_idle']))
 # RPC
 L2_RPC_PROVIDER = os.getenv('SIPHON_RPC_L2', config['rpc']['l2'])
+# Other
+LOG_VERBOSITY = int(os.getenv('SIPHON_VERBOSITY', config['other']['verbosity']))
+LOG_TIMESTAMPED = bool(os.getenv('SIPHON_TIMESTAMPED', config.getboolean('other', 'log_timestamped')))
 
 # Internal globals
 previous_round_refresh = 0

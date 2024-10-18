@@ -5,13 +5,31 @@ import sys #< Used to flush STDOUT or exit
 import os #< Check if a filepath is valid
 import web3 #< Handling wallet addresses
 # Import our own libraries
-from lib import Contract
+from lib import Contract, State
 
 """
 @brief Logs `info` to the terminal with an attached datetime
+@param log_level: gets filtered if above the configured `verbosity` value
 """
-def log(info):
-    print("[", datetime.now(), "] - ", info)
+def log(info, log_level = 1):
+    level_string = ""
+    match log_level:
+        case 1:
+            level_string = "WARN"
+        case 2:
+            level_string = "INFO"
+        case 3:
+            level_string = "DEBUG"
+        case _:
+            level_string = "😕"
+    if (log_level > State.LOG_VERBOSITY):
+        return
+    if State.LOG_TIMESTAMPED:
+        now = datetime.now()
+        now_trimmed = now.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        print("[{0}] {1} - {2}".format(now_trimmed, level_string, info))
+    else:
+        print("{0} - {1}".format(level_string, info))
     sys.stdout.flush()
 
 """
@@ -23,7 +41,7 @@ def getChecksumAddr(wallet):
         parsed_wallet = web3.Web3.to_checksum_address(wallet.lower())
         return parsed_wallet
     except Exception as e:
-        log("Fatal error: Unable to parse wallet address: {0}".format(e))
+        log("Fatal error: Unable to parse wallet address: {0}".format(e), 1)
         sys.exit(1)
 
 """
@@ -48,9 +66,9 @@ def clearPassword(file_path):
         # Open the file in write mode, which empties it
         with open(file_path, 'w') as file:
             pass
-        log('Clear password file success.')
+        log('Clear password file success.', 2)
     except Exception as e:
-        log("WARNING: was not able to overwrite the password file: {0}".format(e))
+        log("WARNING: was not able to overwrite the password file: {0}".format(e), 1)
 
 """
 @brief Returns the private key of a wallet
@@ -68,5 +86,5 @@ def getPrivateKey(keystore_path, password):
             else:
                 return Contract.w3.eth.account.decrypt(encrypted_key, password)
     except Exception as e:
-        log("Unable to decrypt key: {0}".format(e))
+        log("Unable to decrypt key: {0}".format(e), 1)
         return ""
