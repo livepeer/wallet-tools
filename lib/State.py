@@ -1,7 +1,17 @@
 # All classes and variables we want to share across files
 # Also parses the config on initialisation
 import configparser #< Parse the .ini file
-import os #< Used to get environment variables
+import os #< Used to get environment variables & for resolving relative file paths
+
+
+### Export path to be able to resolve the JSON and ini files correctly
+
+
+# Determine root directory
+SIPHON_ROOT = os.path.dirname(os.path.abspath(__file__))
+# Remove subdir which venv's can add
+if SIPHON_ROOT.endswith("/lib"):
+    SIPHON_ROOT = os.path.dirname(SIPHON_ROOT)
 
 
 ### Config & Variables
@@ -18,7 +28,7 @@ class OrchConf:
 
 # Load config file
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read(os.path.join(SIPHON_ROOT, 'config.ini'))
 
 # For each keystore section, create a OrchConf object
 KEYSTORE_CONFIGS = []
