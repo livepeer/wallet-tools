@@ -10,6 +10,7 @@ from lib import Util, State
 
 BONDING_CONTRACT_ADDR = '0x35Bcf3c30594191d53231E4FF333E8A770453e40'
 ROUNDS_CONTRACT_ADDR = '0xdd6f56DcC28D3F5f27084381fE8Df634985cc39f'
+GOVERNOR_CONTRACT_ADDR = '0xcFE4E2879B786C3aa075813F0E364bb5acCb6aa0'
 
 
 ### Define contracts
@@ -28,8 +29,9 @@ def getABI(path):
         Util.log("Fatal error: Unable to extract ABI data: {0}".format(e), 1)
         sys.exit(1)
 
-abi_bonding_manager = getABI(State.SIPHON_ROOT + "/contracts/BondingManagerTarget.json")
-abi_rounds_manager = getABI(State.SIPHON_ROOT + "/contracts/RoundsManagerTarget.json")
+abi_bonding_manager = getABI(State.SIPHON_ROOT + "/contracts/BondingManager.json")
+abi_rounds_manager = getABI(State.SIPHON_ROOT + "/contracts/RoundsManager.json")
+treasury_manager = getABI(State.SIPHON_ROOT + "/contracts/LivepeerGovernor.json")
 # connect to L2 rpc provider
 provider = web3.HTTPProvider(State.L2_RPC_PROVIDER)
 w3 = web3.Web3(provider)
@@ -37,6 +39,7 @@ assert w3.is_connected()
 # prepare contracts
 bonding_contract = w3.eth.contract(address=BONDING_CONTRACT_ADDR, abi=abi_bonding_manager)
 rounds_contract = w3.eth.contract(address=ROUNDS_CONTRACT_ADDR, abi=abi_rounds_manager)
+treasury_contract = w3.eth.contract(address=GOVERNOR_CONTRACT_ADDR, abi=treasury_manager)
 
 
 ### Round refresh logic
