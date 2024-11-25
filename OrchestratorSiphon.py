@@ -45,7 +45,6 @@ if unknown:
     Util.log(f"Warning: Skipping unknown arguments: {', '.join(unknown)}", 1)
 State.LOCK_INTERACTIVE = getattr(args, 'interactive', False) or getattr(args, 'it', False) or getattr(args, 'i', False)
 State.require_user_input = State.LOCK_INTERACTIVE
-print(State.LOCK_INTERACTIVE, State.require_user_input)
 
 
 ### Orchestrator state
