@@ -4,6 +4,7 @@ from datetime import datetime, timezone #< In order to update the timer for cach
 import web3 #< Currency conversions
 import sys #< To exit the program
 import json #< Parse JSON ABI file
+import re #< Parse proposal description
 # Import our own libraries
 from lib import Util, State
 
@@ -40,6 +41,103 @@ assert w3.is_connected()
 bonding_contract = w3.eth.contract(address=BONDING_CONTRACT_ADDR, abi=abi_bonding_manager)
 rounds_contract = w3.eth.contract(address=ROUNDS_CONTRACT_ADDR, abi=abi_rounds_manager)
 treasury_contract = w3.eth.contract(address=GOVERNOR_CONTRACT_ADDR, abi=treasury_manager)
+
+
+### Governance & Treasury logic
+
+
+"""
+@brief Returns proposals TODO COMMENTS
+"""
+def getProposals():
+    try:
+        rawProposals = treasury_contract.events.ProposalCreated().get_logs(from_block=w3.eth.block_number - (330000 * 31))
+        proposals = []
+        for proposal in rawProposals:
+            titleAndBody = proposal.args.description.split("\n");
+            proposals.append({
+                "proposalId": proposal.args.proposalId,
+                "proposer": proposal.args.proposer,
+                "targets": proposal.args.targets,
+                "voteStart": proposal.args.voteStart,
+                "voteEnd": proposal.args.voteEnd,
+                "title": re.sub(r'/^#+\s*/', "", titleAndBody[0])
+            })
+        return proposals
+    except Exception as e:
+        Util.log("Unable to retrieve treasury proposals: {0}".format(e), 1)
+
+"""
+@brief Returns current vote counters
+"""
+def getVotes(proposalId):
+    try:
+        votes = []
+        rawVotes = treasury_contract.functions.proposalVotes(proposalId).call()
+        for vote in rawVotes:
+            votes.append(web3.Web3.from_wei(vote, 'ether'))
+        return votes
+    except Exception as e:
+        Util.log("Unable to retrieve votes: '{0}'".format(e), 1)
+
+"""
+@brief Checks whether the wallet has already voted
+"""
+def hasVoted(proposalId, address):
+    try:
+        return treasury_contract.functions.hasVoted(proposalId, address).call()
+    except Exception as e:
+        Util.log("Unable to check for voting status: '{0}'".format(e), 1)
+
+"""
+@brief Checks whether the wallet has already voted
+"""
+def doCastVote(idx, proposalId, value):
+    try:
+        # Build transaction info
+        transaction_obj = treasury_contract.functions.castVote(proposalId, value).build_transaction(
+            {
+                "from": State.orchestrators[idx].source_checksum_address,
+                'maxFeePerGas': 2000000000,
+                'maxPriorityFeePerGas': 1000000000,
+                "nonce": w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address)
+            }
+        )
+        # Sign and initiate transaction
+        signed_transaction = w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
+        transaction_hash = w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
+        Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()), 2)
+        # Wait for transaction to be confirmed
+        receipt = w3.eth.wait_for_transaction_receipt(transaction_hash)
+        # Util.log("Completed transaction {0}".format(receipt))
+        Util.log('Voted successfully', 2)
+    except Exception as e:
+        Util.log("Unable to vote: '{0}'".format(e), 1)
+
+"""
+@brief Checks whether the wallet has already voted
+"""
+def doCastVoteWithReason(idx, proposalId, value, reason):
+    try:
+        # Build transaction info
+        transaction_obj = treasury_contract.functions.castVoteWithReason(proposalId, value, reason).build_transaction(
+            {
+                "from": State.orchestrators[idx].source_checksum_address,
+                'maxFeePerGas': 2000000000,
+                'maxPriorityFeePerGas': 1000000000,
+                "nonce": w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address)
+            }
+        )
+        # Sign and initiate transaction
+        signed_transaction = w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
+        transaction_hash = w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
+        Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()), 2)
+        # Wait for transaction to be confirmed
+        receipt = w3.eth.wait_for_transaction_receipt(transaction_hash)
+        # Util.log("Completed transaction {0}".format(receipt))
+        Util.log('Voted successfully', 2)
+    except Exception as e:
+        Util.log("Unable to vote: '{0}'".format(e), 1)
 
 
 ### Round refresh logic
