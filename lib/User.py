@@ -48,6 +48,8 @@ def handleUserInput():
             print("Siphoning... 💸")
             State.require_user_input = False
             break
+        elif choice == -1:
+            continue
         else:
             if choice == 1:
                 handleTreasury()
@@ -69,6 +71,8 @@ def handleVote(idx, proposalId):
         voteChoice = getInputAsInt()
         if voteChoice == 0:
             return
+        elif voteChoice == -1:
+            continue
         else:
             if voteChoice < 4:
                 voteVal = -1 #< 0 = Against, 1 = For, 2 = Abstain
@@ -89,6 +93,10 @@ def handleVote(idx, proposalId):
                 else:
                     reasonString += " with reason: '" + reason + "'"
                 print(reasonString)
+                print("Enter 1 to confirm. Enter anything else to abort.")
+                confirmChoice = getInputAsInt()
+                if (confirmChoice != 1):
+                    continue
                 # And cast the vote
                 if reason == "":
                     Contract.doCastVote(idx, proposalId, voteVal)
@@ -119,7 +127,7 @@ def handleProposal(proposals, idx):
         for idx in range(len(State.orchestrators)):
             hasVoted = Contract.hasVoted(proposal["proposalId"], State.orchestrators[idx].source_checksum_address)
             if hasVoted:
-                print("{0} has already voted on this proposal")
+                print("{0} has already voted on this proposal".format(State.orchestrators[idx].source_address))
             else:
                 print("{0} can vote on this proposal".format(State.orchestrators[idx].source_address))
                 canVoteIdx.append(idx)
@@ -130,6 +138,8 @@ def handleProposal(proposals, idx):
         choice = getInputAsInt()
         if choice == 0:
             return
+        elif choice == -1:
+            continue
         else:
             if choice < len(canVoteIdx) + 1:
                 handleVote(canVoteIdx[choice - 1], proposal["proposalId"])
@@ -152,6 +162,8 @@ def handleTreasury():
 
         if choice == 0:
             break
+        elif choice == -1:
+            continue
         else:
             if choice < len(proposals) + 1:
                 handleProposal(proposals, choice - 1)
