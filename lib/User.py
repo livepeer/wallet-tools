@@ -64,35 +64,32 @@ def handleUserInput():
 def handleVote(idx, proposalId):
     while True:
         print("{0} wants to vote".format(State.orchestrators[idx].source_address))
-        options = ["3. Vote for the proposal", "2. Vote against the proposal", "1. Abstain", "0. Back to wallet selection"]
+        options = ["3. Abstain", "2. Vote for the proposal", "1. Vote against the proposal", "0. Back to wallet selection"]
         printOptions(options)
         voteChoice = getInputAsInt()
         if voteChoice == 0:
             return
         else:
             if voteChoice < 4:
+                voteVal = -1 #< 0 = Against, 1 = For, 2 = Abstain
                 reason = input("Type in a reason or leave empty to vote without reason: ")
                 # Lastly ask them to confirm
                 reasonString = State.orchestrators[idx].source_address + " is about to "
-                if voteChoice == 1:
-                    reasonString += "vote ABSTAIN this proposal "
-                if voteChoice == 2:
-                    reasonString += "vote AGAINST this proposal"
                 if voteChoice == 3:
-                    reasonString += "vote For this proposal"
+                    reasonString += "vote ABSTAIN this proposal "
+                    voteVal = 2
+                if voteChoice == 2:
+                    reasonString += "vote FOR this proposal"
+                    voteVal = 1
+                if voteChoice == 1:
+                    reasonString += "vote AGAINST this proposal"
+                    voteVal = 0
                 if reason == "":
                     reasonString += " without a reason"
                 else:
                     reasonString += " with reason: '" + reason + "'"
                 print(reasonString)
                 # And cast the vote
-                voteVal = -1 #< 0 = Against, 1 = For, 2 = Abstain
-                if voteChoice == 3:
-                    voteVal = 1
-                if voteChoice == 2:
-                    voteVal = 0
-                if voteChoice == 1:
-                    voteVal = 2
                 if reason == "":
                     Contract.doCastVote(idx, proposalId, voteVal)
                 else:
@@ -160,18 +157,3 @@ def handleTreasury():
                 handleProposal(proposals, choice - 1)
             else:
                 print("UNIMPL: chose {0}".format(choice))
-
-
-### Governance proposals
-
-
-# TODO: get proposals
-# TODO: get proposal status (open/closed, for/against/abstained)
-# TODO: menu to select proposal
-# TODO: menu to vote on proposal
-# TODO: vote on proposal
-# NOTE: tricky, seems to have a dedicated contract per proposal:
-# https://arbiscan.io/tx/0x20a966e668ba6a2ec0ff74c1adb736484e506cc94f8279042e6d027218a26017
-# https://arbiscan.io/tx/0x7f1b21412b01364b221090fea3d4d0b228aa0cd4a3d7745f2f53d59b4ed16f62
-# https://arbiscan.io/tx/0x1f33cd73ee9b32b3c3423863c13166c4d69e2852117a9700d63624bdc02a1073
-
