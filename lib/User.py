@@ -77,7 +77,7 @@ def handleVote(idx, proposalId):
             if voteChoice < 4:
                 voteVal = -1 #< 0 = Against, 1 = For, 2 = Abstain
                 reason = input("Type in a reason or leave empty to vote without reason: ")
-                # Lastly ask them to confirm
+                # Finally ask them to confirm
                 reasonString = State.orchestrators[idx].source_address + " is about to "
                 if voteChoice == 3:
                     reasonString += "vote ABSTAIN this proposal "
@@ -109,8 +109,8 @@ def handleVote(idx, proposalId):
 """
 @brief Handler for choosing a wallet to vote with
 """
-def handleProposal(proposals, idx):
-    proposal = proposals[idx]
+def handleProposal(proposals, proposalIdx):
+    proposal = proposals[proposalIdx]
     while True:
         # Refresh votes
         currentVotes = Contract.getVotes(proposal["proposalId"])
@@ -124,14 +124,13 @@ def handleProposal(proposals, idx):
         # First build a list of eligible orchs
         canVoteIdx = []
         options = []
-        for idx in range(len(State.orchestrators)):
-            hasVoted = Contract.hasVoted(proposal["proposalId"], State.orchestrators[idx].source_checksum_address)
+        for orchIdx in range(len(State.orchestrators)):
+            hasVoted = Contract.hasVoted(proposal["proposalId"], State.orchestrators[orchIdx].source_checksum_address)
             if hasVoted:
-                print("{0} has already voted on this proposal".format(State.orchestrators[idx].source_address))
+                print("{0}. {1} has already voted on this proposal".format(orchIdx + 1, State.orchestrators[orchIdx].source_address))
             else:
-                print("{0} can vote on this proposal".format(State.orchestrators[idx].source_address))
-                canVoteIdx.append(idx)
-                options.append("{0}. Vote with {1}".format(idx + 1, State.orchestrators[idx].source_address))
+                canVoteIdx.append(orchIdx)
+                options.append("{0}. Vote with {1}".format(orchIdx + 1, State.orchestrators[orchIdx].source_address))
         options.append("0. Back to proposals")
         # Ask which wallet to vote with
         printOptions(options)
@@ -141,8 +140,12 @@ def handleProposal(proposals, idx):
         elif choice == -1:
             continue
         else:
-            if choice < len(canVoteIdx) + 1:
-                handleVote(canVoteIdx[choice - 1], proposal["proposalId"])
+            orchIdx = choice - 1
+            if orchIdx < len(State.orchestrators):
+                if orchIdx in canVoteIdx:
+                    handleVote(orchIdx, proposal["proposalId"])
+                else:
+                    print("{0} has already voted on this proposal".format(State.orchestrators[orchIdx].source_address))
             else:
                 print("UNIMPL: chose {0}".format(choice))
 
@@ -165,7 +168,8 @@ def handleTreasury():
         elif choice == -1:
             continue
         else:
-            if choice < len(proposals) + 1:
-                handleProposal(proposals, choice - 1)
+            proposalIdx = choice - 1
+            if proposalIdx < len(proposals):
+                handleProposal(proposals, proposalIdx)
             else:
                 print("UNIMPL: chose {0}".format(choice))
