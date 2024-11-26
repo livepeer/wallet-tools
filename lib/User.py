@@ -127,7 +127,7 @@ def handleProposal(proposals, proposalIdx):
         for orchIdx in range(len(State.orchestrators)):
             hasVoted = Contract.hasVoted(proposal["proposalId"], State.orchestrators[orchIdx].source_checksum_address)
             if hasVoted:
-                print("{0}. {1} has already voted on this proposal".format(orchIdx + 1, State.orchestrators[orchIdx].source_address))
+                options.append("{0}. {1} has already voted on this proposal".format(orchIdx + 1, State.orchestrators[orchIdx].source_address))
             else:
                 canVoteIdx.append(orchIdx)
                 options.append("{0}. Vote with {1}".format(orchIdx + 1, State.orchestrators[orchIdx].source_address))
