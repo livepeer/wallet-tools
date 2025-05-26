@@ -12,6 +12,7 @@ from lib import Util, State
 BONDING_CONTRACT_ADDR = '0x35Bcf3c30594191d53231E4FF333E8A770453e40'
 ROUNDS_CONTRACT_ADDR = '0xdd6f56DcC28D3F5f27084381fE8Df634985cc39f'
 GOVERNOR_CONTRACT_ADDR = '0xcFE4E2879B786C3aa075813F0E364bb5acCb6aa0'
+TICKET_BROKER_CONTRACT_ADDR = '0xa8bB618B1520E284046F3dFc448851A1Ff26e41B'
 
 
 ### Define contracts
@@ -33,6 +34,7 @@ def getABI(path):
 abi_bonding_manager = getABI(State.SIPHON_ROOT + "/contracts/BondingManager.json")
 abi_rounds_manager = getABI(State.SIPHON_ROOT + "/contracts/RoundsManager.json")
 treasury_manager = getABI(State.SIPHON_ROOT + "/contracts/LivepeerGovernor.json")
+abi_ticket_broker= getABI(State.SIPHON_ROOT + "/contracts/TicketBroker.json")
 # connect to L2 rpc provider
 provider = web3.HTTPProvider(State.L2_RPC_PROVIDER)
 w3 = web3.Web3(provider)
@@ -41,6 +43,7 @@ assert w3.is_connected()
 bonding_contract = w3.eth.contract(address=BONDING_CONTRACT_ADDR, abi=abi_bonding_manager)
 rounds_contract = w3.eth.contract(address=ROUNDS_CONTRACT_ADDR, abi=abi_rounds_manager)
 treasury_contract = w3.eth.contract(address=GOVERNOR_CONTRACT_ADDR, abi=treasury_manager)
+ticket_broker_contract = w3.eth.contract(address=TICKET_BROKER_CONTRACT_ADDR, abi=abi_ticket_broker)
 
 
 ### Governance & Treasury logic
@@ -184,9 +187,6 @@ def refreshRewardRound(idx):
         Util.log("Unable to refresh round lock status: {0}".format(e), 1)
 
 
-### Orch LPT logic
-
-
 """
 @brief Refresh Delegator amount of LPT available for withdrawal
 @param idx: which Orch # in the set to check
@@ -285,13 +285,7 @@ def doWithdrawFees(idx):
         # We take a little bit off due to floating point inaccuracies causing tx's to fail
         transfer_amount = web3.Web3.to_wei(float(State.orchestrators[idx].balance_ETH_pending) - 0.00001, 'ether')
         receiver_address = State.orchestrators[idx].source_checksum_address
-        if not State.WITHDRAW_TO_RECEIVER:
-            Util.log("Withdrawing {0} WEI to {1}".format(transfer_amount, State.orchestrators[idx].source_address), 2)
-        elif State.orchestrators[idx].balance_ETH < State.ETH_MINVAL:
-            Util.log("{0} has a balance of {1:.4f} ETH. Withdrawing fees to the Orch wallet to maintain the minimum balance of {2:.4f}".format(State.orchestrators[idx].source_address, State.orchestrators[idx].balance_ETH, State.ETH_MINVAL), 2)
-        else:
-            receiver_address = State.orchestrators[idx].target_checksum_address_ETH
-            Util.log("Withdrawing {0} WEI directly to receiver wallet {1}".format(transfer_amount, State.orchestrators[idx].target_address_ETH), 2)
+        Util.log("Withdrawing {0} WEI to {1}".format(transfer_amount, State.orchestrators[idx].source_address), 2)
         # Build transaction info
         transaction_obj = bonding_contract.functions.withdrawFees(receiver_address, transfer_amount).build_transaction(
             {
@@ -311,6 +305,36 @@ def doWithdrawFees(idx):
         Util.log('Withdraw fees success.', 2)
     except Exception as e:
         Util.log("Unable to withdraw fees: '{0}'".format(e), 1)
+
+def doFundDeposit(idx):
+    try:
+        # We take a little bit off due to floating point inaccuracies causing tx's to fail
+        transfer_amount = web3.Web3.to_wei(float(State.orchestrators[idx].balance_ETH) - State.ETH_MINVAL, 'ether')
+        receiver_address = State.orchestrators[idx].source_checksum_address
+        receiver_address = State.orchestrators[idx].target_checksum_address_ETH
+        Util.log("Sending deposit {0} WEI directly to receiver wallet {1}".format(transfer_amount, State.orchestrators[idx].target_address_ETH), 2)
+        # Build transaction info
+        transaction_obj = ticket_broker_contract.functions.fundDepositAndReserveFor(receiver_address, transfer_amount, 0).build_transaction(
+            {
+                "from": State.orchestrators[idx].source_checksum_address,
+                'maxFeePerGas': 2000000000,
+                'maxPriorityFeePerGas': 1000000000,
+                'value': transfer_amount,
+                "nonce": w3.eth.get_transaction_count(State.orchestrators[idx].source_checksum_address),
+                'gas': 300000,
+                'chainId': 54321
+            }
+        )
+        # Sign and initiate transaction
+        signed_transaction = w3.eth.account.sign_transaction(transaction_obj, State.orchestrators[idx].source_private_key)
+        transaction_hash = w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
+        Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()), 2)
+        # Wait for transaction to be confirmed
+        receipt = w3.eth.wait_for_transaction_receipt(transaction_hash)
+        # Util.log("Completed transaction {0}".format(receipt))
+        Util.log('Fund deposit success.', 2)
+    except Exception as e:
+        Util.log("Unable to fund deposit: '{0}'".format(e), 1)
 
 """
 @brief Updates known ETH balance of the Orch
