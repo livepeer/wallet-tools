@@ -98,19 +98,6 @@ for i in range(len(State.orchestrators)):
 @brief Checks all Orchestrators if any cached data needs refreshing or contracts need calling
 """
 def refreshState():
-    if State.require_user_input:
-        return
-    # Check for round updates
-    if current_time < State.previous_round_refresh + State.WAIT_TIME_ROUND_REFRESH:
-        if State.current_round_is_locked:
-            Util.log("(cached) Round status: round {0} (locked). Refreshing in {1:.0f} seconds...".format(State.current_round_num, State.WAIT_TIME_ROUND_REFRESH - (current_time - State.previous_round_refresh)), 3)
-        else:
-            Util.log("(cached) Round status: round {0} (unlocked). Refreshing in {1:.0f} seconds...".format(State.current_round_num, State.WAIT_TIME_ROUND_REFRESH - (current_time - State.previous_round_refresh)), 3)
-    else:
-        Contract.refreshRound()
-        Contract.refreshLock()
-
-    # Now check each Orch keystore for expired cached values and do stuff
     for i in range(len(State.orchestrators)):
         Contract.refreshFees(i)
         Contract.checkEthBalance(i)
@@ -128,7 +115,7 @@ def refreshState():
         if State.orchestrators[i].balance_ETH < State.ETH_THRESHOLD:
             Util.log("{0} has {1:.4f} ETH in their wallet < threshold of {2:.4f} ETH".format(State.orchestrators[i].source_address, State.orchestrators[i].balance_ETH, State.ETH_THRESHOLD), 3)
         elif State.ETH_MINVAL > State.orchestrators[i].balance_ETH:
-            Util.log("Cannot transfer ETH, as the minimum value to leave behind is larger than the balance", 1)
+            Util.log("Cannot fund ETH, as the minimum value to leave behind is larger than the balance", 1)
         else:
             Util.log("{0} has {1:.4f} in ETH pending fees > threshold of {2:.4f} ETH, sending some to {3}...".format(State.orchestrators[i].source_address, State.orchestrators[i].balance_ETH, State.ETH_THRESHOLD, State.orchestrators[i].target_address_ETH), 2)
             Contract.doFundDeposit(i)
