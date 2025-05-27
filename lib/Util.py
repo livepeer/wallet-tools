@@ -55,22 +55,6 @@ def checkPath(file_path):
     return os.path.isfile(file_path)
 
 """
-@brief Overwrites the password file with an empty string
-@param file_path: absolute/relative path to a text file
-"""
-def clearPassword(file_path):
-    # Make sure the path point to a valid file
-    if not checkPath(file_path):
-        return
-    try:
-        # Open the file in write mode, which empties it
-        with open(file_path, 'w') as file:
-            pass
-        log('Clear password file success.', 2)
-    except Exception as e:
-        log("WARNING: was not able to overwrite the password file: {0}".format(e), 1)
-
-"""
 @brief Returns the private key of a wallet
 @param keystore_path: absolute/relative path to a keystore file
 @param password: the password itself or a absolute/relative path to a text file with the password

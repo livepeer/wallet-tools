@@ -10,4 +10,4 @@ RUN  pip install web3 \
 COPY . .
 
 # Default command (replace main.py with your entrypoint if different)
-CMD ["python", "OrchestratorSiphon.py"]
+CMD ["python", "Livepeer.py"]
