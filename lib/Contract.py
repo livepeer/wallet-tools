@@ -84,7 +84,6 @@ def getEthBalance():
 
 def doFundDeposit(amount):
     try:
-        receiver_address = State.orchestrator.source_checksum_address
         receiver_address = State.orchestrator.target_checksum_address
         Util.log("Sending deposit {0} WEI directly to receiver's deposit {1}".format(amount, State.orchestrator.target_address), 2)
         amount_wei = web3.Web3.to_wei(amount, 'ether')
