@@ -6,8 +6,8 @@ import json #< Parse JSON ABI file
 # Import our own libraries
 from lib import Util, State
 
-BONDING_CONTRACT_ADDR = '0x35Bcf3c30594191d53231E4FF333E8A770453e40'
-TICKET_BROKER_CONTRACT_ADDR = '0xa8bB618B1520E284046F3dFc448851A1Ff26e41B'
+BONDING_CONTRACT_ADDR = '0xB2B2aFbf10E322Ee7dFb6E6EB8a909b9397686bA'
+TICKET_BROKER_CONTRACT_ADDR = '0x3Eb31D0b427e40F01FA3d38F627fE928a33DA0E3'
 
 
 ### Define contracts
@@ -48,10 +48,11 @@ def pendingFees():
         Util.log("Unable to get pending fees: '{0}'".format(e), 1)
         return 0.0
 
-def doWithdrawFees(toTarget):
+def doWithdrawFees():
     try:
         # We take a little bit off due to floating point inaccuracies causing tx's to fail
-        transfer_amount = web3.Web3.to_wei(float(State.orchestrator.balance_ETH_pending) - 0.00001, 'ether')
+        pending = pendingFees()
+        transfer_amount = web3.Web3.to_wei(float(pending), 'ether')
         receiver_address = State.orchestrator.source_checksum_address
         Util.log("Withdrawing {0} WEI to {1}".format(transfer_amount, State.orchestrator.source_address), 1)
         # Build transaction info
@@ -65,6 +66,10 @@ def doWithdrawFees(toTarget):
         )
         # Sign and initiate transaction
         signed_transaction = w3.eth.account.sign_transaction(transaction_obj, State.orchestrator.source_private_key)
+        print("DRY RUN: {0}".format(State.DRY_RUN))
+        if State.DRY_RUN:
+            Util.log("Dry run mode enabled, skip executing any on-chain transactions", 1)
+            return
         transaction_hash = w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
         Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()), 2)
         # Wait for transaction to be confirmed
@@ -85,9 +90,9 @@ def getEthBalance():
 def doFundDeposit(amount):
     try:
         receiver_address = State.orchestrator.target_checksum_address
-        Util.log("Sending deposit {0} WEI directly to receiver's deposit {1}".format(amount, State.orchestrator.target_address), 2)
+        Util.log("Sending {0} ETH to Gateway's Deposit {1}".format(amount, State.orchestrator.target_address), 2)
         amount_wei = web3.Web3.to_wei(amount, 'ether')
-        # Build transaction info
+
         transaction_obj = ticket_broker_contract.functions.fundDepositAndReserveFor(receiver_address, amount_wei, 0).build_transaction(
             {
                 "from": State.orchestrator.source_checksum_address,
@@ -96,11 +101,12 @@ def doFundDeposit(amount):
                 'value': amount_wei,
                 "nonce": w3.eth.get_transaction_count(State.orchestrator.source_checksum_address),
                 'gas': 300000,
-                'chainId': 54321
             }
         )
-        # Sign and initiate transaction
         signed_transaction = w3.eth.account.sign_transaction(transaction_obj, State.orchestrator.source_private_key)
+        if State.DRY_RUN:
+            Util.log("Dry run mode enabled, skip executing any on-chain transactions", 1)
+            return
         transaction_hash = w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
         Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()), 2)
         # Wait for transaction to be confirmed

@@ -42,7 +42,7 @@ def fund_deposit():
     elif State.ETH_MINVAL > balance:
         Util.log("Cannot send ETH, as the minimum value {0:.4f} ETH to leave behind is larger than the balance {1:.4f} ETH".format(State.ETH_MINVAL, balance), 1)
     else:
-        Util.log("{0} has {1:.4f} in ETH pending fees > threshold of {2:.4f} ETH, sending some to {3}...".format(State.orchestrator.source_address, balance, State.ETH_THRESHOLD, State.orchestrator.target_address), 2)
+        Util.log("{0} has {1:.4f} in ETH in their wallet > threshold of {2:.4f} ETH, sending some to {3}...".format(State.orchestrator.source_address, balance, State.ETH_THRESHOLD, State.orchestrator.target_address), 2)
         Contract.doFundDeposit(float(balance) - State.ETH_MINVAL)
 
 withdraw_fees()

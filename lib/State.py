@@ -42,24 +42,36 @@ if os.getenv('KEYSTORE', "") == "":
             )
 else:
     # Else ignore keystore config - read all data from environment variables
-    keystores = os.getenv('SIPHON_KEYSTORES', "")
-    passwords = os.getenv('SIPHON_PASSWORDS', "")
-    source_adresses = os.getenv('SIPHON_SOURCES', "")
-    receiver_addresses_eth = os.getenv('SIPHON_TARGETS_ETH', "")
-    for keystore, password, source_adress, receiver_address in zip(keystores, passwords, source_adresses, receiver_addresses_eth):
-            KEYSTORE_CONFIGS.append(
-                OrchConf(
-                    keystore,
-                    password,
-                    source_adress,
-                    receiver_address
-                )
-            )
+    keystore = os.getenv('KEYSTORE', "")
+    password = os.getenv('PASSWORD', "")
+    source_address = os.getenv('SOURCE', "")
+    target_address = os.getenv('TARGET', "")
+    print("source_address: {0}, receiver_address: {1}".format(source_address, target_address))
+
+    KEYSTORE_CONFIGS.append(
+        OrchConf(
+            keystore,
+            password,
+            source_address,
+            target_address
+        )
+    )
+
+def parse_bool_env(varname, default):
+    val = os.getenv(varname)
+    if val is None:
+        return default
+    print("val: {0}".format(val))
+    if val.strip().lower() in ("0", "false"):
+        return False
+    return True
+
 # Thresholds
-ETH_THRESHOLD = float(os.getenv('SIPHON_ETH_THRESHOLD', config['thresholds']['eth_threshold']))
-ETH_MINVAL = float(os.getenv('SIPHON_ETH_MINVAL', config['thresholds']['eth_minval']))
+ETH_THRESHOLD = float(os.getenv('ETH_THRESHOLD', config['thresholds']['eth_threshold']))
+ETH_MINVAL = float(os.getenv('ETH_MINVAL', config['thresholds']['eth_minval']))
 # RPC
-L2_RPC_PROVIDER = os.getenv('SIPHON_RPC_L2', config['rpc']['l2'])
+L2_RPC_PROVIDER = os.getenv('RPC_L2', config['rpc']['l2'])
 # Logging
 LOG_VERBOSITY = int(os.getenv('SIPHON_VERBOSITY', config['other']['verbosity']))
 LOG_TIMESTAMPED = bool(os.getenv('SIPHON_TIMESTAMPED', config.getboolean('other', 'log_timestamped')))
+DRY_RUN = parse_bool_env('DRY_RUN', config.getboolean('other', 'dry_run'))
