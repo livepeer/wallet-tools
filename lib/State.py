@@ -58,12 +58,18 @@ else:
     )
 
 
+def get_bool(env_name, *args, fallback):
+   """Get a boolean value from an environment variable or prased config ini file."""
+   return strtobool(os.getenv(env_name, str(config.getboolean(*args, fallback=fallback))))
+
+
 # Thresholds
-ETH_THRESHOLD = float(os.getenv('ETH_THRESHOLD', config['thresholds']['eth_threshold']))
-ETH_MINVAL = float(os.getenv('ETH_MINVAL', config['thresholds']['eth_minval']))
+ETH_THRESHOLD = float(os.getenv('ETH_THRESHOLD', config.getfloat('thresholds', 'eth_threshold')))
+ETH_MINVAL = float(os.getenv('ETH_MINVAL', config.getfloat('thresholds', 'eth_minval')))
 # RPC
 L2_RPC_PROVIDER = os.getenv('RPC_L2', config['rpc']['l2'])
 # Logging
-LOG_VERBOSITY = int(os.getenv('LOG_VERBOSITY', config['other']['verbosity']))
-LOG_TIMESTAMPED = strtobool(os.getenv('LOG_TIMESTAMPED', config.getboolean('other', 'log_timestamped')))
-DRY_RUN = strtobool(os.getenv('DRY_RUN', config.getboolean('other', 'dry_run')))
+LOG_VERBOSITY = int(os.getenv('LOG_VERBOSITY', config.getint('other', 'verbosity', fallback=1)))
+LOG_TIMESTAMPED = get_bool('LOG_TIMESTAMPED', 'other', 'log_timestamped', fallback=True)
+# Dry run
+DRY_RUN = get_bool('DRY_RUN', 'other', 'dry_run', fallback=True)
