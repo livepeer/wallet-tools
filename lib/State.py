@@ -66,4 +66,4 @@ L2_RPC_PROVIDER = os.getenv('RPC_L2', config['rpc']['l2'])
 # Logging
 LOG_VERBOSITY = int(os.getenv('SIPHON_VERBOSITY', config['other']['verbosity']))
 LOG_TIMESTAMPED = bool(os.getenv('SIPHON_TIMESTAMPED', config.getboolean('other', 'log_timestamped')))
-DRY_RUN = parse_bool_env(strtobool(os.getenv('DRY_RUN', config.getboolean('other', 'dry_run')))
+DRY_RUN = strtobool(os.getenv('DRY_RUN', config.getboolean('other', 'dry_run')))
