@@ -26,8 +26,8 @@ def getABI(path):
         Util.log("Fatal error: Unable to extract ABI data: {0}".format(e), 1)
         sys.exit(1)
 
-abi_bonding_manager = getABI(State.SIPHON_ROOT + "/contracts/BondingManager.json")
-abi_ticket_broker= getABI(State.SIPHON_ROOT + "/contracts/TicketBroker.json")
+abi_bonding_manager = getABI(State.ROOT_DIR / "contracts/BondingManager.json")
+abi_ticket_broker = getABI(State.ROOT_DIR / "contracts/TicketBroker.json")
 # connect to L2 rpc provider
 provider = web3.HTTPProvider(State.L2_RPC_PROVIDER)
 w3 = web3.Web3(provider)

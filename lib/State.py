@@ -2,14 +2,11 @@
 # Also parses the config on initialisation
 import configparser #< Parse the .ini file
 import os #< Used to get environment variables & for resolving relative file paths
+import pathlib
 from distutils.util import strtobool
 
-# Determine root directory
-SIPHON_ROOT = os.path.dirname(os.path.abspath(__file__))
-# Remove subdir which venv's can add
-if SIPHON_ROOT.endswith("/lib"):
-    SIPHON_ROOT = os.path.dirname(SIPHON_ROOT)
 
+ROOT_DIR = pathlib.Path(__file__).parent.parent
 
 ### Config & Variables
 
@@ -24,7 +21,10 @@ class OrchConf:
 
 # Load config file
 config = configparser.ConfigParser()
-config.read(os.path.join(SIPHON_ROOT, 'config.ini'))
+config_ini = ROOT_DIR / 'config.ini'
+if not config_ini.exists():
+    print(f"Config file not found: {config_ini} !")
+config.read(config_ini)
 
 # For each keystore section, create a OrchConf object
 KEYSTORE_CONFIGS = []
@@ -64,6 +64,6 @@ ETH_MINVAL = float(os.getenv('ETH_MINVAL', config['thresholds']['eth_minval']))
 # RPC
 L2_RPC_PROVIDER = os.getenv('RPC_L2', config['rpc']['l2'])
 # Logging
-LOG_VERBOSITY = int(os.getenv('SIPHON_VERBOSITY', config['other']['verbosity']))
-LOG_TIMESTAMPED = bool(os.getenv('SIPHON_TIMESTAMPED', config.getboolean('other', 'log_timestamped')))
+LOG_VERBOSITY = int(os.getenv('LOG_VERBOSITY', config['other']['verbosity']))
+LOG_TIMESTAMPED = strtobool(os.getenv('LOG_TIMESTAMPED', config.getboolean('other', 'log_timestamped')))
 DRY_RUN = strtobool(os.getenv('DRY_RUN', config.getboolean('other', 'dry_run')))
