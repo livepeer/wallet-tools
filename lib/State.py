@@ -2,7 +2,7 @@
 # Also parses the config on initialisation
 import configparser #< Parse the .ini file
 import os #< Used to get environment variables & for resolving relative file paths
-
+from distutils.util import strtobool
 
 # Determine root directory
 SIPHON_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -57,14 +57,6 @@ else:
         )
     )
 
-def parse_bool_env(varname, default):
-    val = os.getenv(varname)
-    if val is None:
-        return default
-    print("val: {0}".format(val))
-    if val.strip().lower() in ("0", "false"):
-        return False
-    return True
 
 # Thresholds
 ETH_THRESHOLD = float(os.getenv('ETH_THRESHOLD', config['thresholds']['eth_threshold']))
@@ -74,4 +66,4 @@ L2_RPC_PROVIDER = os.getenv('RPC_L2', config['rpc']['l2'])
 # Logging
 LOG_VERBOSITY = int(os.getenv('SIPHON_VERBOSITY', config['other']['verbosity']))
 LOG_TIMESTAMPED = bool(os.getenv('SIPHON_TIMESTAMPED', config.getboolean('other', 'log_timestamped')))
-DRY_RUN = parse_bool_env('DRY_RUN', config.getboolean('other', 'dry_run'))
+DRY_RUN = parse_bool_env(strtobool(os.getenv('DRY_RUN', config.getboolean('other', 'dry_run')))
