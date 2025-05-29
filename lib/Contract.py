@@ -77,6 +77,7 @@ def doWithdrawFees():
         Util.log('Withdraw fees success.', 2)
     except Exception as e:
         Util.log("Unable to withdraw fees: '{0}'".format(e), 1)
+        exit(1)
 
 
 def getEthBalance():
