@@ -54,7 +54,7 @@ def doWithdrawFees():
         pending = pendingFees()
         transfer_amount = web3.Web3.to_wei(float(pending), 'ether')
         receiver_address = State.orchestrator.source_checksum_address
-        Util.log("{} {} WEI to {}".format("Withdrawing " if State.DRY_RUN else "Dry-run withdrawing", transfer_amount,
+        Util.log("{} {} WEI to {}".format("Dry-run withdrawing" if State.DRY_RUN else "Withdrawing", transfer_amount,
                                           State.orchestrator.source_address), 1)
         # Build transaction info
         transaction_obj = bonding_contract.functions.withdrawFees(receiver_address, transfer_amount).build_transaction(
