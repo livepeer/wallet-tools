@@ -1,30 +1,29 @@
 # Any functions which requires reading/writing smart contracts gets dumped here
 # Also connects to the RPC provider and holds accessors to the smart contracts
-import web3 #< Currency conversions
-import sys #< To exit the program
-import json #< Parse JSON ABI file
-# Import our own libraries
+import json  # Parse JSON ABI file
+import web3  # Currency conversions
 from lib import Util, State
 
 BONDING_CONTRACT_ADDR = '0x35Bcf3c30594191d53231E4FF333E8A770453e40'
 TICKET_BROKER_CONTRACT_ADDR = '0xa8bB618B1520E284046F3dFc448851A1Ff26e41B'
 
 
-### Define contracts
+# Define contracts
 
 
-"""
-@brief Returns a JSON object of ABI data
-@param path: absolute/relative path to an ABI file
-"""
 def getABI(path):
+    """
+    @brief Returns a JSON object of ABI data
+    @param path: absolute/relative path to an ABI file
+    """
     try:
         with open(path) as f:
             info_json = json.load(f)
             return info_json["abi"]
     except Exception as e:
         Util.log("Fatal error: Unable to extract ABI data: {0}".format(e), 1)
-        sys.exit(1)
+        exit(1)
+
 
 abi_bonding_manager = getABI(State.ROOT_DIR / "contracts/BondingManager.json")
 abi_ticket_broker = getABI(State.ROOT_DIR / "contracts/TicketBroker.json")
@@ -37,7 +36,7 @@ bonding_contract = w3.eth.contract(address=BONDING_CONTRACT_ADDR, abi=abi_bondin
 ticket_broker_contract = w3.eth.contract(address=TICKET_BROKER_CONTRACT_ADDR, abi=abi_ticket_broker)
 
 
-### Orchestrator ETH logic
+# Orchestrator ETH logic
 
 def pendingFees():
     try:
@@ -47,6 +46,7 @@ def pendingFees():
     except Exception as e:
         Util.log("Unable to get pending fees: '{0}'".format(e), 1)
         return 0.0
+
 
 def doWithdrawFees():
     try:
@@ -88,6 +88,7 @@ def getEthBalance():
         return balance_ETH
     except Exception as e:
         Util.log("Unable to get ETH balance: '{0}'".format(e), 1)
+
 
 def doFundDeposit(amount):
     try:

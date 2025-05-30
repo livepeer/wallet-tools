@@ -3,4 +3,4 @@
 ## Usage
 
 1. Fill `config.ini` or set up corresponding env variables.
-2. Start `python Livepeer.py`
+2. Start `python livepeer.py`
