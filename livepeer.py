@@ -53,5 +53,6 @@ def fund_deposit():
 
 
 if __name__ == "__main__":
-    withdraw_fees()
+    if not State.SKIP_FEES_WITHDRAWAL:
+        withdraw_fees()
     fund_deposit()
