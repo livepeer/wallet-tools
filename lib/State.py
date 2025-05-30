@@ -75,3 +75,5 @@ LOG_VERBOSITY = int(os.getenv('LOG_VERBOSITY', config.getint('other', 'verbosity
 LOG_TIMESTAMPED = get_bool('LOG_TIMESTAMPED', 'other', 'log_timestamped', fallback=True)
 # Dry run
 DRY_RUN = get_bool('DRY_RUN', 'other', 'dry_run', fallback=True)
+# Disable steps
+SKIP_FEES_WITHDRAWAL = get_bool('SKIP_FEES_WITHDRAWAL', 'other', 'skip_fees_withdrawal', fallback=False)
