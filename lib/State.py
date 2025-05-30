@@ -1,23 +1,25 @@
 # All classes and variables we want to share across files
 # Also parses the config on initialisation
-import configparser #< Parse the .ini file
-import os #< Used to get environment variables & for resolving relative file paths
+import configparser  # Parse the .ini file
+import os
 import pathlib
 from distutils.util import strtobool
 
 
 ROOT_DIR = pathlib.Path(__file__).parent.parent
 
-### Config & Variables
+
+# Config & Variables
 
 
 # Turn config options into a nice object to work with later
 class OrchConf:
-  def __init__(self, key, pw, pub, eth_target):
-    self._source_key = key
-    self._source_password = pw
-    self._source_address = pub
-    self._target_address = eth_target
+    def __init__(self, key, pw, pub, eth_target):
+        self._source_key = key
+        self._source_password = pw
+        self._source_address = pub
+        self._target_address = eth_target
+
 
 # Load config file
 config = configparser.ConfigParser()
@@ -59,8 +61,8 @@ else:
 
 
 def get_bool(env_name, *args, fallback):
-   """Get a boolean value from an environment variable or prased config ini file."""
-   return strtobool(os.getenv(env_name, str(config.getboolean(*args, fallback=fallback))))
+    """Get a boolean value from an environment variable or prased config ini file."""
+    return strtobool(os.getenv(env_name, str(config.getboolean(*args, fallback=fallback))))
 
 
 # Thresholds

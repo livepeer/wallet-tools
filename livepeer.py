@@ -1,8 +1,9 @@
 #!/bin/python3
 from lib import Util, Contract, State
 
-# This class initializes an Orchestrator object
+
 class Orchestrator:
+
     def __init__(self, obj):
         # Orch details
         self.source_address = obj._source_address
@@ -27,7 +28,7 @@ if len(State.KEYSTORE_CONFIGS) != 1:
 State.orchestrator = Orchestrator(State.KEYSTORE_CONFIGS[0])
 
 
-### Main logic
+# Main logic
 def withdraw_fees():
     Util.log("### {}Withdrawing Fees ###".format('Dry-running ' if State.DRY_RUN else ''), 1)
     pending_fees = Contract.pendingFees()
@@ -50,5 +51,7 @@ def fund_deposit():
         Util.log("{0} has {1:.4f} in ETH in their wallet > threshold of {2:.4f} ETH, sending some to {3}...".format(State.orchestrator.source_address, balance, State.ETH_THRESHOLD, State.orchestrator.target_address), 2)
         Contract.doFundDeposit(float(balance) - State.ETH_MINVAL)
 
-withdraw_fees()
-fund_deposit()
+
+if __name__ == "__main__":
+    withdraw_fees()
+    fund_deposit()
