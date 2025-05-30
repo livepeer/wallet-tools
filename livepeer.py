@@ -17,15 +17,19 @@ class Orchestrator:
         self.target_address = obj._target_address
         self.target_checksum_address = Util.getChecksumAddr(obj._target_address)
 
-# For each configured keystore, create a Orchestrator object
+
+# For each configured keystore, create an Orchestrator object
 if len(State.KEYSTORE_CONFIGS) != 1:
     Util.log("Only 1 Keystore Config is currently supported. Exiting...", 1)
     exit(1)
+
+
 State.orchestrator = Orchestrator(State.KEYSTORE_CONFIGS[0])
+
 
 ### Main logic
 def withdraw_fees():
-    Util.log("### Withdrawing Fees ###", 1)
+    Util.log("### {}Withdrawing Fees ###".format('Dry-running ' if State.DRY_RUN else ''), 1)
     pending_fees = Contract.pendingFees()
     if pending_fees < State.ETH_THRESHOLD:
         Util.log("{0} has {1:.4f} ETH in pending fees < threshold of {2:.4f} ETH".format(State.orchestrator.source_address, pending_fees, State.ETH_THRESHOLD), 1)
@@ -33,8 +37,9 @@ def withdraw_fees():
         Util.log("{0} has {1:.4f} in ETH pending fees > threshold of {2:.4f} ETH, withdrawing fees...".format(State.orchestrator.source_address, pending_fees, State.ETH_THRESHOLD), 1)
         Contract.doWithdrawFees()
 
+
 def fund_deposit():
-    Util.log("### Funding Deposit ###", 1)
+    Util.log("### {}Funding Deposit ###".format('Dry-running ' if State.DRY_RUN else ''), 1)
     balance = Contract.getEthBalance()
     # Transfer ETH to Receiver Gateway's Deposit if threshold is reached
     if balance < State.ETH_THRESHOLD:
