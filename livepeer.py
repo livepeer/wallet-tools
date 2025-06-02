@@ -40,9 +40,13 @@ def fund_deposit():
     source_balance = Contract.getEthBalance(State.orchestrator.source_checksum_address)
 
     if State.FIXED_ETH is not None:
-        if source_balance < State.FIXED_ETH:
+        if source_balance <= State.ETH_MINVAL:
+            Util.log("No deposit possible as source is below the MIN_VAL of {0:.4f} ETH, no deposit made.".format(State.ETH_MINVAL), 1)
+            exit(1)
+        if (source_balance - State.ETH_MINVAL) < State.FIXED_ETH:
             Util.log("Not enough ETH in source wallet to fund fixed deposit of {0:.4f} ETH, "
-                     "only {1:.4f} ETH available, no deposit made.".format(State.FIXED_ETH, source_balance), 1)
+                     "max possible deposit is {1:.4f} ETH, no deposit made.".format(State.FIXED_ETH, source_balance - State.ETH_MINVAL), 1)
+            exit(1)
         else:
             Util.log("Funding deposit of {0:.4f} ETH to the target wallet.".format(State.FIXED_ETH), 2)
             Contract.doFundDeposit(State.FIXED_ETH)
