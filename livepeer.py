@@ -38,6 +38,7 @@ def withdraw_fees():
 def fund_deposit():
     Util.log("### {}Funding Deposit ###".format('Dry-running ' if State.DRY_RUN else ''), 1)
     source_balance = Contract.getEthBalance(State.orchestrator.source_checksum_address)
+    target_balance = Contract.getEthBalance(State.orchestrator.target_checksum_address)
 
     if State.FIXED_ETH is not None:
         if source_balance <= State.ETH_MINVAL:
@@ -50,6 +51,19 @@ def fund_deposit():
         else:
             Util.log("Funding deposit of {0:.4f} ETH to the target wallet.".format(State.FIXED_ETH), 2)
             Contract.doFundDeposit(State.FIXED_ETH)
+    elif State.TARGET_ETH is not None:
+        if target_balance >= State.TARGET_ETH:
+            Util.log("Target {0} already has {1:.4f} ETH, no deposit made.".format(State.orchestrator.target_address, target_balance), 1)
+            exit(1)
+        missing_balance = State.TARGET_ETH - float(target_balance)
+        if missing_balance < State.ETH_MINVAL:
+            Util.log("Target {0} needs at least {1:.4f} ETH, but the minimum value to leave behind is {2:.4f} ETH, no deposit made.".format(State.orchestrator.target_address, missing_balance, State.ETH_MINVAL), 1)
+            exit(1)
+        if source_balance < missing_balance:
+            Util.log("Not enough ETH in source wallet to fully fund {0:.4f} ETH, only {1:.4f} ETH available.".format(missing_balance, source_balance), 1)
+            missing_balance = source_balance - State.ETH_MINVAL
+        Util.log("Depositing {0:.4f} ETH to target".format(missing_balance), 2)
+        Contract.doFundDeposit(missing_balance)
     elif source_balance < State.ETH_THRESHOLD:
         Util.log("{0} has {1:.4f} ETH in source wallet < threshold of {2:.4f} ETH, no deposit made.".format(State.orchestrator.source_address, source_balance, State.ETH_THRESHOLD), 1)
     elif State.ETH_MINVAL > source_balance:
