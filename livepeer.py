@@ -39,7 +39,7 @@ def fund_deposit():
     Util.log("### {}Funding Deposit ###".format('Dry-running ' if State.DRY_RUN else ''), 1)
     source_balance = Contract.getEthBalance(State.orchestrator.source_checksum_address)
 
-    if State.FIXED_ETH:
+    if State.FIXED_ETH is not None:
         if source_balance < State.FIXED_ETH:
             Util.log("Not enough ETH in source wallet to fund fixed deposit of {0:.4f} ETH, "
                      "only {1:.4f} ETH available, no deposit made.".format(State.FIXED_ETH, source_balance), 1)

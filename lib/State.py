@@ -68,8 +68,8 @@ def get_bool(env_name, *args, fallback):
 # Thresholds
 ETH_THRESHOLD = float(os.getenv('ETH_THRESHOLD', config.getfloat('thresholds', 'eth_threshold')))
 ETH_MINVAL = float(os.getenv('ETH_MINVAL', config.getfloat('thresholds', 'eth_minval')))
-# Fixed ETH deposit
-FIXED_ETH = float(os.getenv('FIXED_ETH', config.getfloat('fixed', 'fixed_eth')))
+# Fixed ETH to fund the target deposit address with. Ignores eth_threshold and eth_minval:
+FIXED_ETH = float(os.getenv('FIXED_ETH')) if os.getenv('FIXED_ETH') else None
 # RPC
 L2_RPC_PROVIDER = os.getenv('RPC_L2', config['rpc']['l2'])
 # Logging
