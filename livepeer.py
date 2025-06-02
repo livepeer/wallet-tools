@@ -41,15 +41,22 @@ def withdraw_fees():
 
 def fund_deposit():
     Util.log("### {}Funding Deposit ###".format('Dry-running ' if State.DRY_RUN else ''), 1)
-    balance = Contract.getEthBalance()
-    # Transfer ETH to Receiver Gateway's Deposit if threshold is reached
-    if balance < State.ETH_THRESHOLD:
-        Util.log("{0} has {1:.4f} ETH in their wallet < threshold of {2:.4f} ETH".format(State.orchestrator.source_address, balance, State.ETH_THRESHOLD), 1)
-    elif State.ETH_MINVAL > balance:
-        Util.log("Cannot send ETH, as the minimum value {0:.4f} ETH to leave behind is larger than the balance {1:.4f} ETH".format(State.ETH_MINVAL, balance), 1)
+    source_balance = Contract.getEthBalance(State.orchestrator.source_checksum_address)
+
+    if State.FIXED_ETH:
+        if source_balance < State.FIXED_ETH:
+            Util.log("Not enough ETH in source wallet to fund fixed deposit of {0:.4f} ETH, "
+                     "only {1:.4f} ETH available, no deposit made.".format(State.FIXED_ETH, source_balance), 1)
+        else:
+            Util.log("Funding deposit of {0:.4f} ETH to the target wallet.".format(State.FIXED_ETH), 2)
+            Contract.doFundDeposit(State.FIXED_ETH)
+    elif source_balance < State.ETH_THRESHOLD:
+        Util.log("{0} has {1:.4f} ETH in source wallet < threshold of {2:.4f} ETH, no deposit made.".format(State.orchestrator.source_address, source_balance, State.ETH_THRESHOLD), 1)
+    elif State.ETH_MINVAL > source_balance:
+        Util.log("Cannot send ETH, as the minimum value {0:.4f} ETH to leave behind is larger than the balance {1:.4f} ETH, no deposit made.".format(State.ETH_MINVAL, source_balance), 1)
     else:
-        Util.log("{0} has {1:.4f} in ETH in their wallet > threshold of {2:.4f} ETH, sending some to {3}...".format(State.orchestrator.source_address, balance, State.ETH_THRESHOLD, State.orchestrator.target_address), 2)
-        Contract.doFundDeposit(float(balance) - State.ETH_MINVAL)
+        Util.log("{0} has {1:.4f} in ETH in their wallet > threshold of {2:.4f} ETH, sending some to {3}...".format(State.orchestrator.source_address, source_balance, State.ETH_THRESHOLD, State.orchestrator.target_address), 2)
+        Contract.doFundDeposit(float(source_balance) - State.ETH_MINVAL)
 
 
 if __name__ == "__main__":

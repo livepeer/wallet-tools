@@ -1,5 +1,6 @@
 # Any functions which requires reading/writing smart contracts gets dumped here
 # Also connects to the RPC provider and holds accessors to the smart contracts
+from decimal import Decimal
 import json  # Parse JSON ABI file
 import web3  # Currency conversions
 from lib import Util, State
@@ -81,10 +82,10 @@ def doWithdrawFees():
         exit(1)
 
 
-def getEthBalance():
+def getEthBalance(address) -> Decimal:
     try:
-        balance_wei = w3.eth.get_balance(State.orchestrator.source_checksum_address)
-        balance_ETH = web3.Web3.from_wei(balance_wei, 'ether')
+        balance_wei = w3.eth.get_balance(address)
+        balance_ETH: Decimal = web3.Web3.from_wei(balance_wei, 'ether')
         return balance_ETH
     except Exception as e:
         Util.log("Unable to get ETH balance: '{0}'".format(e), 1)
