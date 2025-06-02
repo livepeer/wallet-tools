@@ -70,6 +70,9 @@ ETH_THRESHOLD = float(os.getenv('ETH_THRESHOLD', config.getfloat('thresholds', '
 ETH_MINVAL = float(os.getenv('ETH_MINVAL', config.getfloat('thresholds', 'eth_minval')))
 # Fixed ETH to fund the target deposit address with. Ignores ETH_THRESHOLD but accepts ETH_MINVAL.
 FIXED_ETH = float(os.getenv('FIXED_ETH')) if os.getenv('FIXED_ETH') else None
+TARGET_ETH = float(os.getenv('TARGET_ETH')) if os.getenv('TARGET_ETH') else None
+assert FIXED_ETH is None or TARGET_ETH is None, "Both FIXED_ETH and TARGET_ETH cannot be set at the same time"
+
 # RPC
 L2_RPC_PROVIDER = os.getenv('RPC_L2', config['rpc']['l2'])
 # Logging
