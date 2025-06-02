@@ -75,4 +75,4 @@ def getPrivateKey(keystore_path, password):
                 return Contract.w3.eth.account.decrypt(encrypted_key, password)
     except Exception as e:
         log("Unable to decrypt key: {0}".format(e), 1)
-        return ""
+        exit(1)

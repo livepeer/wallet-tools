@@ -89,6 +89,7 @@ def getEthBalance(address) -> Decimal:
         return balance_ETH
     except Exception as e:
         Util.log("Unable to get ETH balance: '{0}'".format(e), 1)
+        exit(1)
 
 
 def doFundDeposit(amount):
@@ -118,3 +119,4 @@ def doFundDeposit(amount):
         Util.log('Fund deposit success.', 2)
     except Exception as e:
         Util.log("Unable to fund deposit: '{0}'".format(e), 1)
+        exit(1)

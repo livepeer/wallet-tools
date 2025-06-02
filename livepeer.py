@@ -9,10 +9,6 @@ class Orchestrator:
         self.source_address = obj._source_address
         # Get private key
         self.source_private_key = Util.getPrivateKey(obj._source_key, obj._source_password)
-        # If the password was set via file or environment var but failed to decrypt, exit
-        if self.source_private_key == "":
-            Util.log("Fatal error: Unable to decrypt keystore file. Exiting...", 1)
-            exit(1)
         self.source_checksum_address = Util.getChecksumAddr(obj._source_address)
         # Set target adresses
         self.target_address = obj._target_address
