@@ -6,4 +6,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "livepeer.py"]
+CMD ["python", "wallet_tools.py"]

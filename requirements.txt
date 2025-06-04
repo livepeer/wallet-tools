@@ -1,3 +1,5 @@
+click<9
 eth-utils<6
+prometheus-client<1
 setuptools
 web3<8
