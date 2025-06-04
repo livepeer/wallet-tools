@@ -48,7 +48,6 @@ else:
     password = os.getenv('PASSWORD', "")
     source_address = os.getenv('SOURCE', "")
     target_address = os.getenv('TARGET', "")
-    print("source_address: {0}, receiver_address: {1}".format(source_address, target_address))
 
     KEYSTORE_CONFIGS.append(
         OrchConf(

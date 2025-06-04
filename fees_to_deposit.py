@@ -15,16 +15,6 @@ class Orchestrator:
         self.target_checksum_address = Util.getChecksumAddr(obj._target_address)
 
 
-# For each configured keystore, create an Orchestrator object
-if len(State.KEYSTORE_CONFIGS) != 1:
-    Util.log("Only 1 Keystore Config is currently supported. Exiting...", 1)
-    exit(1)
-
-
-State.orchestrator = Orchestrator(State.KEYSTORE_CONFIGS[0])
-
-
-# Main logic
 def withdraw_fees():
     Util.log("### {}Withdrawing Fees ###".format('Dry-running ' if State.DRY_RUN else ''), 1)
     pending_fees = Contract.pendingFees()
@@ -59,7 +49,18 @@ def fund_deposit():
         Contract.doFundDeposit(source_balance - State.ETH_MINVAL)
 
 
-if __name__ == "__main__":
+def withdraw_fees_and_fund_deposit():
+    # For each configured keystore, create an Orchestrator object
+    if len(State.KEYSTORE_CONFIGS) != 1:
+        Util.log("Only 1 Keystore Config is currently supported. Exiting...", 1)
+        exit(1)
+    State.orchestrator = Orchestrator(State.KEYSTORE_CONFIGS[0])
+    print("source_address: {0}, receiver_address: {1}".format(State.orchestrator.source_address, State.orchestrator.target_address))
+
     if not State.SKIP_FEES_WITHDRAWAL:
         withdraw_fees()
     fund_deposit()
+
+
+if __name__ == "__main__":
+    withdraw_fees_and_fund_deposit()

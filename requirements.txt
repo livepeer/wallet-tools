@@ -1,3 +1,4 @@
+click<9
 eth-utils<6
 setuptools
 web3<8
