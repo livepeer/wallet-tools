@@ -3,4 +3,4 @@
 ## Usage
 
 1. Fill `config.ini` or set up corresponding env variables.
-2. Start `python livepeer.py`
+2. Start `./wallet_tools.py`

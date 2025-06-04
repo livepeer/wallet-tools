@@ -84,7 +84,7 @@ def doWithdrawFees():
 
 def getEthBalance(address) -> Decimal:
     try:
-        balance_wei = w3.eth.get_balance(address)
+        balance_wei = w3.eth.get_balance(web3.Web3.to_checksum_address(address))
         balance_ETH: Decimal = web3.Web3.from_wei(balance_wei, 'ether')
         return balance_ETH
     except Exception as e:
