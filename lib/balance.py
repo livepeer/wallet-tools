@@ -10,15 +10,20 @@ balances = {}
 
 def loop_get_balance(addresses):
     while True:
-        for address in addresses:
-            if ':' in address:
-                name, eth_address = address.split(':')
-            else:
-                name, eth_address = None, address
-            address_normalised = w3.to_checksum_address(eth_address)
-            balance_wei = w3.eth.get_balance(address_normalised)
-            balances[name, address_normalised] = balance_wei
-            print(f"Balance for {address_normalised}: {balance_wei} wei")
+        try:
+            for address in addresses:
+                if ':' in address:
+                    name, eth_address = address.split(':')
+                else:
+                    name, eth_address = None, address
+                address_normalised = w3.to_checksum_address(eth_address)
+                balance_wei = w3.eth.get_balance(address_normalised)
+                balances[name, address_normalised] = balance_wei
+                print(f"Balance for {address_normalised}: {balance_wei} wei")
+        except Exception as e:
+            print(f"Error fetching balances: {e}")
+            continue
+        print("Balances updated, sleeping for 5 minutes...")
         time.sleep(60 * 5)  # Sleep for 5 minutes
 
 
@@ -30,7 +35,7 @@ class MetricsHandler(BaseHTTPRequestHandler):
                 "# TYPE livepeer_eth_wallet_balance_wei gauge\n"
             for (name, eth_address), balance in balances.items():
                 if name:
-                    name_label = f'name="{name}",'
+                    name_label = f'wallet="{name}",'
                 else:
                     name_label = ''
                 metrics += f"livepeer_eth_wallet_balance_wei{{{name_label}address=\"{eth_address}\"}} {balance}\n"
