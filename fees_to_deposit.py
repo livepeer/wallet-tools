@@ -25,9 +25,9 @@ def withdraw_fees():
         Contract.doWithdrawFees()
 
 
-def fund_deposit():
+def fund_deposit(planned_spend=0):
     Util.log("### {}Funding Deposit ###".format('Dry-running ' if State.DRY_RUN else ''), 1)
-    source_balance = float(Contract.getEthBalance(State.orchestrator.source_checksum_address))
+    source_balance = float(Contract.getEthBalance(State.orchestrator.source_checksum_address)) - float(planned_spend)
 
     if State.FIXED_ETH is not None:
         if source_balance <= State.ETH_MINVAL:
@@ -49,7 +49,7 @@ def fund_deposit():
         Contract.doFundDeposit(source_balance - State.ETH_MINVAL)
 
 
-def withdraw_fees_and_fund_deposit():
+def configure_orchestrator():
     # For each configured keystore, create an Orchestrator object
     if len(State.KEYSTORE_CONFIGS) != 1:
         Util.log("Only 1 Keystore Config is currently supported. Exiting...", 1)
@@ -57,6 +57,9 @@ def withdraw_fees_and_fund_deposit():
     State.orchestrator = Orchestrator(State.KEYSTORE_CONFIGS[0])
     print("source_address: {0}, receiver_address: {1}".format(State.orchestrator.source_address, State.orchestrator.target_address))
 
+
+def withdraw_fees_and_fund_deposit():
+    configure_orchestrator()
     if not State.SKIP_FEES_WITHDRAWAL:
         withdraw_fees()
     fund_deposit()

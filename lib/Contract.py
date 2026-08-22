@@ -82,6 +82,44 @@ def doWithdrawFees():
         exit(1)
 
 
+def doTransferEth(receiver_address, amount):
+    """Transfer native ETH from the configured source wallet."""
+    try:
+        receiver_checksum_address = web3.Web3.to_checksum_address(receiver_address)
+        amount_wei = web3.Web3.to_wei(amount, 'ether')
+        Util.log(
+            "{} {} ETH to {}".format(
+                "Dry-run transferring" if State.DRY_RUN else "Transferring",
+                amount,
+                receiver_checksum_address,
+            ),
+            2,
+        )
+        transaction_obj = {
+            "from": State.orchestrator.source_checksum_address,
+            "to": receiver_checksum_address,
+            "value": amount_wei,
+            "nonce": w3.eth.get_transaction_count(State.orchestrator.source_checksum_address),
+            "gas": 100000,
+            "chainId": w3.eth.chain_id,
+            "maxFeePerGas": 2000000000,
+            "maxPriorityFeePerGas": 1000000000,
+        }
+        signed_transaction = w3.eth.account.sign_transaction(
+            transaction_obj, State.orchestrator.source_private_key
+        )
+        if State.DRY_RUN:
+            Util.log("Dry run mode enabled, skip executing any on-chain transactions", 1)
+            return
+        transaction_hash = w3.eth.send_raw_transaction(signed_transaction.raw_transaction)
+        Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()), 2)
+        w3.eth.wait_for_transaction_receipt(transaction_hash)
+        Util.log('Native ETH transfer success.', 2)
+    except Exception as e:
+        Util.log("Unable to transfer ETH: '{0}'".format(e), 1)
+        exit(1)
+
+
 def getEthBalance(address) -> Decimal:
     try:
         balance_wei = w3.eth.get_balance(web3.Web3.to_checksum_address(address))

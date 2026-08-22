@@ -1,6 +1,7 @@
 # All classes and variables we want to share across files
 # Also parses the config on initialisation
 import configparser  # Parse the .ini file
+from decimal import Decimal
 import os
 import pathlib
 from distutils.util import strtobool
@@ -69,6 +70,14 @@ ETH_THRESHOLD = float(os.getenv('ETH_THRESHOLD', config.getfloat('thresholds', '
 ETH_MINVAL = float(os.getenv('ETH_MINVAL', config.getfloat('thresholds', 'eth_minval')))
 # Fixed ETH to fund the target deposit address with. Ignores ETH_THRESHOLD but accepts ETH_MINVAL.
 FIXED_ETH = float(os.getenv('FIXED_ETH')) if os.getenv('FIXED_ETH') else None
+# Optional standalone native ETH wallet top-up.
+TOP_UP_ADDRESS = os.getenv('TOP_UP_ADDRESS', config.get('top_up', 'address', fallback='')).strip()
+TOP_UP_MIN_BALANCE = Decimal(
+    os.getenv('TOP_UP_MIN_BALANCE', config.get('top_up', 'min_balance', fallback='0'))
+)
+TOP_UP_AMOUNT = Decimal(
+    os.getenv('TOP_UP_AMOUNT', config.get('top_up', 'amount', fallback='0'))
+)
 # RPC
 L2_RPC_PROVIDER = os.getenv('RPC_L2', config['rpc']['l2'])
 # Logging

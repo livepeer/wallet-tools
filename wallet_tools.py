@@ -29,10 +29,27 @@ def fund_deposit():
     withdraw_fees_and_fund_deposit()
 
 
+@wallet_tools.command('TopUpWallet')
+def top_up_wallet_command():
+    from top_up_wallet import run_top_up_wallet
+    run_top_up_wallet()
+
+
 @wallet_tools.command('WithdrawFeesIntoDeposit')
 def withdraw_fees_into_deposit():
     from fees_to_deposit import withdraw_fees_and_fund_deposit
     withdraw_fees_and_fund_deposit()
+
+
+@wallet_tools.command('WithdrawFeesTopUpAndFundDeposit')
+def withdraw_fees_top_up_and_fund_deposit_command():
+    from fees_to_deposit import configure_orchestrator, fund_deposit, withdraw_fees
+    from top_up_wallet import top_up_wallet
+
+    configure_orchestrator()
+    withdraw_fees()
+    planned_spend = top_up_wallet()
+    fund_deposit(planned_spend)
 
 
 if __name__ == '__main__':
