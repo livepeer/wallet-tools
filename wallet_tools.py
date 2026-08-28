@@ -29,6 +29,13 @@ def fund_deposit():
     withdraw_fees_and_fund_deposit()
 
 
+@wallet_tools.command('FundReserve')
+@click.argument('amount', required=True, type=float)
+def fund_reserve_command(amount):
+    from fees_to_deposit import run_fund_reserve
+    run_fund_reserve(amount)
+
+
 @wallet_tools.command('TopUpWallet')
 def top_up_wallet_command():
     from top_up_wallet import run_top_up_wallet

@@ -53,6 +53,8 @@ class ContractDryRunTests(unittest.TestCase):
             orchestrator=types.SimpleNamespace(
                 source_checksum_address="0xsource",
                 source_private_key=b"private-key",
+                target_address="0xtarget",
+                target_checksum_address="0xtarget",
             ),
         )
         cls.util = types.SimpleNamespace(log=Mock())
@@ -82,6 +84,13 @@ class ContractDryRunTests(unittest.TestCase):
         else:
             sys.modules["web3"] = cls.original_web3
 
+    def setUp(self):
+        self.util.log.reset_mock()
+        self.contract.w3.eth.account.sign_transaction.reset_mock()
+        self.contract.w3.eth.send_raw_transaction.reset_mock()
+        self.contract.w3.eth.wait_for_transaction_receipt.reset_mock()
+        self.contract.ticket_broker_contract.functions.fundDepositAndReserveFor.reset_mock()
+
     def test_native_transfer_dry_run_signs_but_does_not_broadcast(self):
         self.contract.doTransferEth("0xtarget", 0.002)
 
@@ -90,6 +99,51 @@ class ContractDryRunTests(unittest.TestCase):
         self.assertEqual(signed_transaction["chainId"], 42161)
         self.contract.w3.eth.send_raw_transaction.assert_not_called()
         self.contract.w3.eth.wait_for_transaction_receipt.assert_not_called()
+
+    def test_fund_deposit_dry_run_targets_deposit_without_broadcasting(self):
+        self.contract.doFundDeposit(0.25)
+
+        self.contract.ticket_broker_contract.functions.fundDepositAndReserveFor.assert_called_once_with(
+            "0xtarget", 250000000000000000, 0
+        )
+        transaction = (
+            self.contract.ticket_broker_contract.functions
+            .fundDepositAndReserveFor.return_value.build_transaction.call_args.args[0]
+        )
+        self.assertEqual(transaction["value"], 250000000000000000)
+        self.contract.w3.eth.account.sign_transaction.assert_called_once()
+        self.contract.w3.eth.send_raw_transaction.assert_not_called()
+        self.contract.w3.eth.wait_for_transaction_receipt.assert_not_called()
+
+    def test_fund_reserve_dry_run_targets_reserve_without_broadcasting(self):
+        self.contract.doFundReserve(0.25)
+
+        self.contract.ticket_broker_contract.functions.fundDepositAndReserveFor.assert_called_once_with(
+            "0xtarget", 0, 250000000000000000
+        )
+        transaction = (
+            self.contract.ticket_broker_contract.functions
+            .fundDepositAndReserveFor.return_value.build_transaction.call_args.args[0]
+        )
+        self.assertEqual(transaction["value"], 250000000000000000)
+        self.contract.w3.eth.account.sign_transaction.assert_called_once()
+        self.contract.w3.eth.send_raw_transaction.assert_not_called()
+        self.contract.w3.eth.wait_for_transaction_receipt.assert_not_called()
+
+    def test_zero_funding_is_rejected_before_building_transaction(self):
+        with self.assertRaises(SystemExit):
+            self.contract.doFundDeposit(0)
+
+        self.assertIn("Unable to fund deposit", self.util.log.call_args.args[0])
+        self.contract.ticket_broker_contract.functions.fundDepositAndReserveFor.assert_not_called()
+        self.contract.w3.eth.account.sign_transaction.assert_not_called()
+
+    def test_negative_funding_is_rejected_before_building_transaction(self):
+        with self.assertRaises(SystemExit):
+            self.contract.doFundReserve(-0.25)
+
+        self.contract.ticket_broker_contract.functions.fundDepositAndReserveFor.assert_not_called()
+        self.contract.w3.eth.account.sign_transaction.assert_not_called()
 
 
 if __name__ == "__main__":
