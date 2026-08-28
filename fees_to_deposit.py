@@ -49,6 +49,28 @@ def fund_deposit(planned_spend=0):
         Contract.doFundDeposit(source_balance - State.ETH_MINVAL)
 
 
+def fund_reserve(amount):
+    Util.log("### {}Funding Reserve ###".format('Dry-running ' if State.DRY_RUN else ''), 1)
+    if amount <= 0:
+        Util.log("Reserve amount must be greater than zero, no reserve funding made.", 1)
+        exit(1)
+
+    source_balance = float(Contract.getEthBalance(State.orchestrator.source_checksum_address))
+    if source_balance <= State.ETH_MINVAL:
+        Util.log("No reserve funding possible as source is below the MIN_VAL of "
+                 "{0:.4f} ETH, no reserve funding made.".format(State.ETH_MINVAL), 1)
+        exit(1)
+
+    if (source_balance - State.ETH_MINVAL) < amount:
+        Util.log("Not enough ETH in source wallet to fund reserve with {0:.4f} ETH, "
+                 "max possible reserve funding is {1:.4f} ETH, no reserve funding made."
+                 .format(amount, source_balance - State.ETH_MINVAL), 1)
+        exit(1)
+
+    Util.log("Funding reserve with {0:.4f} ETH for the target wallet.".format(amount), 2)
+    Contract.doFundReserve(amount)
+
+
 def configure_orchestrator():
     # For each configured keystore, create an Orchestrator object
     if len(State.KEYSTORE_CONFIGS) != 1:
@@ -56,6 +78,11 @@ def configure_orchestrator():
         exit(1)
     State.orchestrator = Orchestrator(State.KEYSTORE_CONFIGS[0])
     print("source_address: {0}, receiver_address: {1}".format(State.orchestrator.source_address, State.orchestrator.target_address))
+
+
+def run_fund_reserve(amount):
+    configure_orchestrator()
+    fund_reserve(amount)
 
 
 def withdraw_fees_and_fund_deposit():

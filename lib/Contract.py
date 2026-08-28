@@ -130,13 +130,22 @@ def getEthBalance(address) -> Decimal:
         exit(1)
 
 
-def doFundDeposit(amount):
+def _doFundDepositAndReserve(*, funding_type, deposit_amount=0, reserve_amount=0):
     try:
         receiver_address = State.orchestrator.target_checksum_address
-        Util.log("Sending {0} ETH to Gateway's Deposit {1}".format(amount, State.orchestrator.target_address), 2)
-        amount_wei = web3.Web3.to_wei(amount, 'ether')
+        deposit_wei = web3.Web3.to_wei(deposit_amount, 'ether')
+        reserve_wei = web3.Web3.to_wei(reserve_amount, 'ether')
+        amount_wei = deposit_wei + reserve_wei
+        if deposit_wei < 0 or reserve_wei < 0 or amount_wei <= 0:
+            raise ValueError("Deposit and reserve amounts must be non-negative with a positive total")
+        amount = web3.Web3.from_wei(amount_wei, 'ether')
+        Util.log("Sending {0} ETH to Gateway's {1} {2}".format(
+            amount, funding_type.title(), State.orchestrator.target_address
+        ), 2)
 
-        transaction_obj = ticket_broker_contract.functions.fundDepositAndReserveFor(receiver_address, amount_wei, 0).build_transaction(
+        transaction_obj = ticket_broker_contract.functions.fundDepositAndReserveFor(
+            receiver_address, deposit_wei, reserve_wei
+        ).build_transaction(
             {
                 "from": State.orchestrator.source_checksum_address,
                 'maxFeePerGas': 2000000000,
@@ -154,7 +163,15 @@ def doFundDeposit(amount):
         Util.log("Initiated transaction with hash {0}".format(transaction_hash.hex()), 2)
         # Wait for transaction to be confirmed
         w3.eth.wait_for_transaction_receipt(transaction_hash)
-        Util.log('Fund deposit success.', 2)
+        Util.log("Fund {0} success.".format(funding_type), 2)
     except Exception as e:
-        Util.log("Unable to fund deposit: '{0}'".format(e), 1)
+        Util.log("Unable to fund {0}: '{1}'".format(funding_type, e), 1)
         exit(1)
+
+
+def doFundDeposit(amount):
+    _doFundDepositAndReserve(funding_type="deposit", deposit_amount=amount)
+
+
+def doFundReserve(amount):
+    _doFundDepositAndReserve(funding_type="reserve", reserve_amount=amount)
