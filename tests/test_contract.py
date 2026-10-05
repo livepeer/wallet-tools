@@ -97,6 +97,8 @@ class ContractDryRunTests(unittest.TestCase):
         signed_transaction = self.contract.w3.eth.account.sign_transaction.call_args.args[0]
         self.assertEqual(signed_transaction["gas"], 100000)
         self.assertEqual(signed_transaction["chainId"], 42161)
+        self.assertEqual(signed_transaction["maxFeePerGas"], 2000000000)
+        self.assertEqual(signed_transaction["maxPriorityFeePerGas"], 0)
         self.contract.w3.eth.send_raw_transaction.assert_not_called()
         self.contract.w3.eth.wait_for_transaction_receipt.assert_not_called()
 
@@ -111,6 +113,8 @@ class ContractDryRunTests(unittest.TestCase):
             .fundDepositAndReserveFor.return_value.build_transaction.call_args.args[0]
         )
         self.assertEqual(transaction["value"], 250000000000000000)
+        self.assertEqual(transaction["maxFeePerGas"], 2000000000)
+        self.assertEqual(transaction["maxPriorityFeePerGas"], 0)
         self.contract.w3.eth.account.sign_transaction.assert_called_once()
         self.contract.w3.eth.send_raw_transaction.assert_not_called()
         self.contract.w3.eth.wait_for_transaction_receipt.assert_not_called()
@@ -126,6 +130,8 @@ class ContractDryRunTests(unittest.TestCase):
             .fundDepositAndReserveFor.return_value.build_transaction.call_args.args[0]
         )
         self.assertEqual(transaction["value"], 250000000000000000)
+        self.assertEqual(transaction["maxFeePerGas"], 2000000000)
+        self.assertEqual(transaction["maxPriorityFeePerGas"], 0)
         self.contract.w3.eth.account.sign_transaction.assert_called_once()
         self.contract.w3.eth.send_raw_transaction.assert_not_called()
         self.contract.w3.eth.wait_for_transaction_receipt.assert_not_called()
