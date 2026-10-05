@@ -62,7 +62,7 @@ def doWithdrawFees():
             {
                 "from": State.orchestrator.source_checksum_address,
                 'maxFeePerGas': 2000000000,
-                'maxPriorityFeePerGas': 1000000000,
+                'maxPriorityFeePerGas': 0,
                 "nonce": w3.eth.get_transaction_count(State.orchestrator.source_checksum_address)
             }
         )
@@ -103,7 +103,7 @@ def doTransferEth(receiver_address, amount):
             "gas": 100000,
             "chainId": w3.eth.chain_id,
             "maxFeePerGas": 2000000000,
-            "maxPriorityFeePerGas": 1000000000,
+            "maxPriorityFeePerGas": 0,
         }
         signed_transaction = w3.eth.account.sign_transaction(
             transaction_obj, State.orchestrator.source_private_key
@@ -149,7 +149,7 @@ def _doFundDepositAndReserve(*, funding_type, deposit_amount=0, reserve_amount=0
             {
                 "from": State.orchestrator.source_checksum_address,
                 'maxFeePerGas': 2000000000,
-                'maxPriorityFeePerGas': 1000000000,
+                'maxPriorityFeePerGas': 0,
                 'value': amount_wei,
                 "nonce": w3.eth.get_transaction_count(State.orchestrator.source_checksum_address),
                 'gas': 300000,
